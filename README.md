@@ -12,7 +12,7 @@ Add books you're already uploading (paste in bulk):
 ```
 🟦 Book ID | Uploaded Chapters | 🍅 Book ID
 ```
-Select multiple books and click **✏️ Update Chapters** — the panel stays pinned so you can switch to 🟦CV and look up the number.
+Select multiple books and click **✏️ Update Chapters**
 
 ---
 
