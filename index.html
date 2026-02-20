@@ -362,11 +362,12 @@
 <!-- UPDATE PANEL (sticky bottom) -->
 <div id="update-panel">
   <div class="inner">
-    <label>Update uploaded chapters for <strong id="update-count">0</strong> selected book(s):</label>
-    <input type="number" id="update-chapter-input" min="0" placeholder="e.g. 52" />
-    <button class="btn primary" onclick="submitUpdateChapters()">Apply</button>
-    <button class="btn" onclick="closeUpdatePanel()">Close</button>
-    <span class="hint">Panel stays open — switch tabs freely.</span>
+    <label>Update chapters — one <span class="mono" style="color:var(--accent)">fanqieID | new_chapter</span> per line:</label>
+    <textarea id="update-chapter-input" placeholder="7506507753850948633 | 102&#10;7123456789012345678 | 26" style="width:320px;min-height:70px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:6px 8px;border-radius:4px;outline:none;resize:vertical;"></textarea>
+    <div>
+      <button class="btn primary" onclick="submitUpdateChapters()">Apply</button>
+      <button class="btn" onclick="closeUpdatePanel()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -923,6 +924,17 @@ async function submitMove() {
 // UPDATE CHAPTERS
 // ============================================================
 function openUpdatePanel() {
+  if (!selectedTranslating.size) return;
+  document.getElementById('update-count').textContent = selectedTranslating.size;
+  // Pre-fill with selected books: fanqieID | current translated ch
+  const lines = [...selectedTranslating].map(id => {
+    const book = translatingList.find(b => b.fanqie_id === id);
+    return `${id} | ${book ? book.translated_chapters || 0 : 0}`;
+  }).join('\n');
+  document.getElementById('update-chapter-input').value = lines;
+  document.getElementById('update-panel').classList.add('open');
+}
+  function openUpdatePanel() {
   if (!selectedUploading.size) return;
   document.getElementById('update-count').textContent = selectedUploading.size;
   document.getElementById('update-panel').classList.add('open');
@@ -931,19 +943,21 @@ function openUpdatePanel() {
 function closeUpdatePanel() {
   document.getElementById('update-panel').classList.remove('open');
 }
-
 async function submitUpdateChapters() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  const val = parseInt(document.getElementById('update-chapter-input').value);
-  if (isNaN(val) || val < 0) { toast('Enter a valid chapter number.', 'error'); return; }
-  for (const id of selectedUploading) {
-    const book = uploadingList.find(b => b.fanqie_id === id);
-    if (book) book.uploaded_chapters = val;
+  const lines = document.getElementById('update-chapter-input').value.split('\n').map(l => l.trim()).filter(Boolean);
+  let updated = 0;
+  for (const line of lines) {
+    const [fanqie_id, ch_str] = line.split('|').map(s => s.trim());
+    const val = parseInt(ch_str);
+    if (!fanqie_id || isNaN(val) || val < 0) { toast(`Invalid line: ${line}`, 'error'); continue; }
+    const book = translatingList.find(b => b.fanqie_id === fanqie_id);
+    if (book) { book.translated_chapters = val; updated++; }
   }
-  await saveUploading();
-  renderUploading();
+  await saveTranslating();
+  renderTranslating();
   renderChanged();
-  toast(`Updated ${selectedUploading.size} book(s) to chapter ${val}.`, 'success');
+  toast(`Updated ${updated} book(s).`, 'success');
 }
 
 // ============================================================
