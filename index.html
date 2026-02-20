@@ -166,7 +166,7 @@
   #toast.show { display: block; animation: fadeIn 0.2s; }
   #toast.success { border-color: var(--green); }
   #toast.error { border-color: var(--red); }
-  @keyframes fadeIn { from { opacity: 0; transform: uploadeY(6px); } to { opacity: 1; transform: uploadeY(0); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ALERT BANNER */
   .alert-banner { background: rgba(245,197,66,0.08); border: 1px solid rgba(245,197,66,0.25); border-radius: 5px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: var(--yellow); display: flex; align-items: center; gap: 6px; }
@@ -197,6 +197,7 @@
   </div>
   <div class="header-right">
     <span class="sync-info" id="sync-info">—</span>
+    <button class="btn" id="scrape-btn" onclick="triggerScraper()" title="Trigger the Daily Scraper workflow on GitHub Actions">▶ Run Scraper</button>
     <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span> Refresh</button>
   </div>
 </header>
@@ -457,10 +458,23 @@ async function ghApi(path, options = {}) {
   return res.json();
 }
 
+function b64ToUtf8(b64) {
+  const binary = atob(b64.replace(/\n/g, ''));
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function utf8ToB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
+}
+
 async function getFile(filename) {
   try {
     const data = await ghApi(`/repos/${CFG.repo}/contents/${filename}`);
-    const content = atob(data.content.replace(/\n/g, ''));
+    const content = b64ToUtf8(data.content);
     return { data: JSON.parse(content), sha: data.sha };
   } catch(e) {
     if (e.message.includes('404') || e.message.includes('Not Found')) return { data: [], sha: null };
@@ -471,7 +485,7 @@ async function getFile(filename) {
 async function putFile(filename, content, sha) {
   const body = {
     message: `Update ${filename} via web UI`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+    content: utf8ToB64(JSON.stringify(content, null, 2)),
   };
   if (sha) body.sha = sha;
   return ghApi(`/repos/${CFG.repo}/contents/${filename}`, {
@@ -517,6 +531,34 @@ async function saveWaiting() {
 async function saveUploading() {
   const { sha } = await getFile('uploading_list.json');
   await putFile('uploading_list.json', uploadingList, sha);
+}
+
+// ============================================================
+// TRIGGER SCRAPER
+// ============================================================
+async function triggerScraper() {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  const btn = document.getElementById('scrape-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Triggering…';
+  try {
+    await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
+      method: 'POST',
+      body: JSON.stringify({ ref: 'main' })
+    });
+    toast('Scraper triggered! Auto-refreshing data in ~75s.', 'success');
+    btn.innerHTML = '⏳ Running…';
+    // Auto-reload data after 75s (scraper usually finishes by then)
+    setTimeout(async () => {
+      await loadData();
+      btn.disabled = false;
+      btn.innerHTML = '▶ Run Scraper';
+    }, 75000);
+  } catch(e) {
+    toast('Failed to trigger: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '▶ Run Scraper';
+  }
 }
 
 // ============================================================
@@ -626,7 +668,7 @@ function renderWaiting() {
     return `<tr class="${selectedWaiting.has(book.fanqie_id) ? 'selected' : ''}" data-id="${book.fanqie_id}">
       <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${book.fanqie_id}',this.checked)"></td>
       <td class="title-cell">
-        <div class="title-main" title="${book.vi_title||''}">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</div>
+        <div class="title-main">${book.wiki_id ? `<a href="https://wikicv.net/truyen/${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" title="${book.vi_title||''}">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</a>` : (book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>')}</div>
         <div class="title-id"><a href="https://fanqienovel.com/page/${book.fanqie_id}" target="_blank" class="link">${book.fanqie_id}</a></div>
       </td>
       <td>
