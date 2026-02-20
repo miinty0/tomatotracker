@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fanqie Novel Tracker</title>
+<title>Tomato Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -924,12 +924,12 @@ async function submitMove() {
 // UPDATE CHAPTERS
 // ============================================================
 function openUpdatePanel() {
-  if (!selectedTranslating.size) return;
-  document.getElementById('update-count').textContent = selectedTranslating.size;
-  // Pre-fill with selected books: fanqieID | current translated ch
-  const lines = [...selectedTranslating].map(id => {
-    const book = translatingList.find(b => b.fanqie_id === id);
-    return `${id} | ${book ? book.translated_chapters || 0 : 0}`;
+  if (!selectedUploading.size) return;
+  document.getElementById('update-count').textContent = selectedUploading.size;
+  // Pre-fill with selected books: fanqieID | current uploaded ch
+  const lines = [...selectedUploading].map(id => {
+    const book = uploadingList.find(b => b.fanqie_id === id);
+    return `${id} | ${book ? book.uploaded_chapters || 0 : 0}`;
   }).join('\n');
   document.getElementById('update-chapter-input').value = lines;
   document.getElementById('update-panel').classList.add('open');
@@ -951,11 +951,11 @@ async function submitUpdateChapters() {
     const [fanqie_id, ch_str] = line.split('|').map(s => s.trim());
     const val = parseInt(ch_str);
     if (!fanqie_id || isNaN(val) || val < 0) { toast(`Invalid line: ${line}`, 'error'); continue; }
-    const book = translatingList.find(b => b.fanqie_id === fanqie_id);
-    if (book) { book.translated_chapters = val; updated++; }
+    const book = uploadingList.find(b => b.fanqie_id === fanqie_id);
+    if (book) { book.uploaded_chapters = val; updated++; }
   }
-  await saveTranslating();
-  renderTranslating();
+  await saveUploading();
+  renderUploading();
   renderChanged();
   toast(`Updated ${updated} book(s).`, 'success');
 }
