@@ -413,12 +413,11 @@ let sortTrans = 'default';
 let lastSync = null;
 
 function saveConfig() {
+  CFG.repo = document.getElementById('cfg-repo').value.trim();
+  CFG.token = document.getElementById('cfg-token').value.trim();
+  if (!CFG.repo || !CFG.token) { toast('Please fill repo and token.', 'error'); return; }
   localStorage.setItem('fq_repo', CFG.repo);
   localStorage.setItem('fq_token', CFG.token);
-  if (!CFG.repo || !CFG.token) { toast('Please fill repo and token.', 'error'); return; }
-  sessionStorage.setItem('fq_repo', CFG.repo);
-  // Don't persist token in localStorage for security, only session
-  sessionStorage.setItem('fq_token', CFG.token);
   toast('Config saved!', 'success');
   loadData();
 }
