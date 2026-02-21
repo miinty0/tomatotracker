@@ -821,9 +821,6 @@ function updateSelectionUI() {
   document.getElementById('waiting-sel-count').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-del-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-promote-btn').style.display = wc ? 'inline-flex' : 'none';
-  if (document.getElementById('update-panel').classList.contains('open')) {
-    document.getElementById('update-count').textContent = selectedUploading.size;
-  }
   // Uploading
   const tc = selectedUploading.size;
   document.getElementById('trans-sel-count').textContent = `${tc} selected`;
