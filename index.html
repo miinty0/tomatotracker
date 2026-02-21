@@ -413,8 +413,8 @@ let sortTrans = 'default';
 let lastSync = null;
 
 function saveConfig() {
-  CFG.repo = document.getElementById('cfg-repo').value.trim();
-  CFG.token = document.getElementById('cfg-token').value.trim();
+  localStorage.setItem('fq_repo', CFG.repo);
+  localStorage.setItem('fq_token', CFG.token);
   if (!CFG.repo || !CFG.token) { toast('Please fill repo and token.', 'error'); return; }
   sessionStorage.setItem('fq_repo', CFG.repo);
   // Don't persist token in localStorage for security, only session
@@ -424,8 +424,8 @@ function saveConfig() {
 }
 
 function loadConfig() {
-  CFG.repo = sessionStorage.getItem('fq_repo') || 'miinty0/tomatotracker';
-  CFG.token = sessionStorage.getItem('fq_token') || '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';
+  CFG.repo = localStorage.getItem('fq_repo') || '';
+  CFG.token = localStorage.getItem('fq_token') || '';
   if (CFG.repo) document.getElementById('cfg-repo').value = CFG.repo;
   if (CFG.token) document.getElementById('cfg-token').value = CFG.token;
 }
