@@ -214,13 +214,12 @@
     </div>
     <div class="config-row">
       <label>PAT Token</label>
-      <input id="cfg-token" type="password" placeholder="ghp_xxxxxxxxxxxx (needs issues write + contents write)" />
+      <input id="cfg-token" type="password" placeholder="" />
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;">
       <button class="btn primary" onclick="saveConfig()">Save Config</button>
       <button class="btn" onclick="testConfig()">Test Connection</button>
     </div>
-    <div class="note">Token is stored in sessionStorage only (not persisted). Re-enter on each visit for security.<br>Required scopes: repo (or contents + issues)</div>
   </div>
 </div>
 
@@ -426,7 +425,7 @@ function saveConfig() {
 
 function loadConfig() {
   CFG.repo = sessionStorage.getItem('fq_repo') || 'miinty0/tomatotracker';
-  CFG.token = sessionStorage.getItem('fq_token') || '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';
+  CFG.token = sessionStorage.getItem('fq_token') || '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';
   if (CFG.repo) document.getElementById('cfg-repo').value = CFG.repo;
   if (CFG.token) document.getElementById('cfg-token').value = CFG.token;
 }
