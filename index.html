@@ -934,12 +934,6 @@ function openUpdatePanel() {
   document.getElementById('update-chapter-input').value = lines;
   document.getElementById('update-panel').classList.add('open');
 }
-  function openUpdatePanel() {
-  if (!selectedUploading.size) return;
-  document.getElementById('update-count').textContent = selectedUploading.size;
-  document.getElementById('update-panel').classList.add('open');
-}
-
 function closeUpdatePanel() {
   document.getElementById('update-panel').classList.remove('open');
 }
