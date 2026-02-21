@@ -925,8 +925,6 @@ async function submitMove() {
 // ============================================================
 function openUpdatePanel() {
   if (!selectedUploading.size) return;
-  document.getElementById('update-count').textContent = selectedUploading.size;
-  // Pre-fill with selected books: fanqieID | current uploaded ch
   const lines = [...selectedUploading].map(id => {
     const book = uploadingList.find(b => b.fanqie_id === id);
     return `${id} | ${book ? book.uploaded_chapters || 0 : 0}`;
