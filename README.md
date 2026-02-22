@@ -1,24 +1,12 @@
-## Usage
-
 ### Waiting List
-Add books you're waiting on (paste in bulk):
 ```
-Vietnamese Title | Desired Chapters | 🍅 Book ID
+Vietnamese Title | Desired Chapters | 🍅 Book ID | Desired Date (optional)
 ```
-Books with a ✓ READY badge have hit the desired chapter count. Select them and click **→ Move to Uploading**.
-
 ### Uploading List
-Add books you're already uploading (paste in bulk):
 ```
 🟦 Book ID | Uploaded Chapters | 🍅 Book ID
 ```
-Select multiple books and click **✏️ Update Chapters**
-
----
-
-## Issue Commands 
-
-You can also manage data by creating issues with these titles:
+### Issue Commands 
 
 | Issue Title | Body Format |
 |---|---|
@@ -28,5 +16,3 @@ You can also manage data by creating issues with these titles:
 | `MOVE_TO_UPLOADING` | `🍅_id \| 🟦_id` (one per line, 🟦 optional) |
 | `DELETE_WAITING` | `🍅_id` (one per line) |
 | `DELETE_UPLOADING` | `🍅_id` (one per line) |
-
-Issues are auto-closed after processing.
