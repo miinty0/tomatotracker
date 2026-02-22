@@ -27,7 +27,6 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; min-height: 100vh; }
   
-  /* HEADER */
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; gap: 16px; height: 44px; position: sticky; top: 0; z-index: 100; }
   header .logo { font-family: var(--mono); font-weight: 600; font-size: 14px; color: var(--accent); letter-spacing: -0.5px; }
   header .logo span { color: var(--text3); }
@@ -43,14 +42,14 @@
   .btn.primary:hover { background: #6bb3ff; border-color: #6bb3ff; color: #000; }
   .btn.danger { border-color: var(--red); color: var(--red); }
   .btn.danger:hover { background: rgba(255,90,90,0.1); }
+  .btn.ghost { border-color: var(--border); color: var(--text3); }
+  .btn.ghost:hover { border-color: var(--text2); color: var(--text2); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* MAIN */
   main { padding: 12px 16px; }
   .section { display: none; }
   .section.active { display: block; }
 
-  /* TOOLBAR */
   .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
   .toolbar-right { display: flex; align-items: center; gap: 6px; }
@@ -63,7 +62,6 @@
   select:focus, input:focus { border-color: var(--accent); }
   select { cursor: pointer; }
 
-  /* ADD PANEL */
   .add-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; display: none; }
   .add-panel.open { display: block; }
   .add-panel h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: var(--mono); }
@@ -72,7 +70,6 @@
   .add-panel .hint { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
   .add-panel .actions { display: flex; gap: 6px; margin-top: 8px; }
 
-  /* TABLE */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
   thead th { background: var(--surface); padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
@@ -93,7 +90,6 @@
   .link { color: var(--accent); text-decoration: none; }
   .link:hover { text-decoration: underline; }
 
-  /* TAGS */
   .tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
   .tag-green { background: rgba(45,206,122,0.12); color: var(--green); border: 1px solid rgba(45,206,122,0.25); }
   .tag-yellow { background: rgba(245,197,66,0.12); color: var(--yellow); border: 1px solid rgba(245,197,66,0.25); }
@@ -102,7 +98,6 @@
   .tag-orange { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
   .tag-purple { background: rgba(124,92,252,0.12); color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
 
-  /* DEADLINE BADGE */
   .deadline-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
   .deadline-ok { background: rgba(45,206,122,0.10); color: var(--green); border: 1px solid rgba(45,206,122,0.2); }
   .deadline-soon { background: rgba(245,197,66,0.10); color: var(--yellow); border: 1px solid rgba(245,197,66,0.2); }
@@ -110,36 +105,50 @@
   .deadline-overdue { background: rgba(255,90,90,0.12); color: var(--red); border: 1px solid rgba(255,90,90,0.25); }
   .deadline-none { color: var(--text3); font-family: var(--mono); font-size: 11px; }
 
-  /* WARNING TAGS (for changed tab) */
   .warn-tags { display: flex; gap: 3px; flex-wrap: wrap; }
 
-  /* PROGRESS BAR */
   .progress-wrap { display: flex; align-items: center; gap: 6px; }
   .progress-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
   .progress-fill.warn { background: var(--orange); }
   .progress-fill.danger { background: var(--red); }
 
-  /* AHEAD BADGE */
   .ahead { font-family: var(--mono); font-size: 11px; font-weight: 600; }
   .ahead.ok { color: var(--green); }
   .ahead.warn { color: var(--yellow); }
   .ahead.danger { color: var(--red); }
 
-  /* UPDATE PANEL (sticky) */
-  #update-panel {
+  /* ── INLINE UPDATE COLUMN ── */
+  .inline-update-wrap { display: flex; align-items: center; gap: 5px; }
+  .inline-ch-input {
+    width: 68px;
+    padding: 3px 7px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .inline-ch-input:focus { border-color: var(--accent); }
+  .inline-ch-input.pending { border-color: var(--yellow); background: rgba(245,197,66,0.06); color: var(--yellow); }
+
+  /* ── SAVE BAR (shown when pending edits exist) ── */
+  #inline-save-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface); border-top: 1px solid var(--border2);
+    background: var(--surface); border-top: 2px solid var(--yellow);
     padding: 10px 16px; display: none; z-index: 200;
     box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
+    animation: slideUp 0.2s ease;
   }
-  #update-panel.open { display: block; }
-  #update-panel .inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  #update-panel label { font-size: 12px; color: var(--text2); font-weight: 500; white-space: nowrap; }
-  #update-panel input[type="number"] { width: 80px; }
-  #update-panel .hint { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+  #inline-save-bar.open { display: block; }
+  @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  #inline-save-bar .inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #inline-save-bar .hint { font-size: 11px; color: var(--yellow); font-family: var(--mono); }
+  #inline-save-bar .hint strong { color: var(--text); }
 
-  /* MOVE PANEL */
   #move-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border2); padding: 10px 16px; display: none; z-index: 200; box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
   #move-panel.open { display: block; }
   #move-panel .inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -147,11 +156,9 @@
   #move-panel textarea { width: 300px; min-height: 60px; font-family: var(--mono); font-size: 11px; }
   #move-panel .hint { font-size: 10px; color: var(--text3); font-family: var(--mono); }
 
-  /* EMPTY STATE */
   .empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 12px; }
   .empty .icon { font-size: 28px; margin-bottom: 8px; }
 
-  /* MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: none; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 20px; min-width: 340px; max-width: 500px; }
@@ -159,37 +166,28 @@
   .modal p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-  /* FILTER PILLS */
   .filter-pills { display: flex; gap: 4px; }
   .pill { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); font-size: 11px; color: var(--text2); cursor: pointer; font-weight: 500; transition: all 0.15s; }
   .pill:hover { border-color: var(--accent); color: var(--accent); }
   .pill.active { background: rgba(79,158,255,0.1); border-color: var(--accent); color: var(--accent); }
 
-  /* LOADING SPINNER */
   .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* TOAST */
   #toast { position: fixed; bottom: 70px; right: 16px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 14px; font-size: 12px; z-index: 400; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 300px; }
   #toast.show { display: block; animation: fadeIn 0.2s; }
   #toast.success { border-color: var(--green); }
   #toast.error { border-color: var(--red); }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* ALERT BANNER */
   .alert-banner { background: rgba(245,197,66,0.08); border: 1px solid rgba(245,197,66,0.25); border-radius: 5px; padding: 8px 12px; margin-bottom: 10px; font-size: 11px; color: var(--yellow); display: flex; align-items: center; gap: 6px; }
 
-  /* GITHUB TOKEN SETUP */
   #token-setup { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
   #token-setup h4 { font-size: 12px; margin-bottom: 8px; color: var(--text2); }
-  #token-setup .row { display: flex; gap: 8px; align-items: center; }
-  #token-setup input { flex: 1; font-family: var(--mono); font-size: 11px; }
   #token-setup .note { font-size: 10px; color: var(--text3); margin-top: 6px; font-family: var(--mono); }
-
   .config-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
   .config-row label { font-size: 11px; color: var(--text2); white-space: nowrap; min-width: 80px; }
   .config-row input { flex: 1; min-width: 160px; font-family: var(--mono); font-size: 11px; }
-
   hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 </style>
 </head>
@@ -205,14 +203,14 @@
   </div>
   <div class="header-right">
     <span class="sync-info" id="sync-info">—</span>
-    <button class="btn" id="scrape-btn" onclick="triggerScraper()" title="Trigger the Daily Scraper workflow on GitHub Actions">▶ Run Scraper</button>
+    <button class="btn" id="scrape-btn" onclick="triggerScraper()">▶ Run Scraper</button>
     <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span> Refresh</button>
   </div>
 </header>
 
 <main>
 
-<!-- ==================== SETTINGS ==================== -->
+<!-- SETTINGS -->
 <div class="section" id="section-settings">
   <div id="token-setup">
     <h4>GitHub Configuration</h4>
@@ -228,17 +226,18 @@
       <button class="btn primary" onclick="saveConfig()">Save Config</button>
       <button class="btn" onclick="testConfig()">Test Connection</button>
     </div>
-    <div class="note">Token is stored in sessionStorage only (not persisted). Re-enter on each visit for security.<br>Required scopes: repo (or contents + issues)</div>
+    <div class="note">Token is stored in localStorage. Required scopes: repo (or contents + issues)</div>
   </div>
 </div>
 
-<!-- ==================== WAITING LIST ==================== -->
+<!-- WAITING LIST -->
 <div class="section active" id="section-waiting">
   <div class="toolbar">
     <div class="toolbar-left">
       <button class="btn" onclick="toggleAddPanel('waiting')">+ Add Books</button>
       <button class="btn" onclick="selectAllVisible('waiting')">Select All</button>
       <span class="select-count" id="waiting-sel-count" style="display:none"></span>
+      <button class="btn ghost" id="waiting-desel-btn" onclick="deselectAll('waiting')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="waiting-del-btn" onclick="bulkDelete('waiting')" style="display:none">🗑 Delete</button>
       <button class="btn" id="waiting-promote-btn" onclick="openMovePanel()" style="display:none">→ Move to Uploading</button>
     </div>
@@ -257,7 +256,7 @@
   </div>
   <div class="add-panel" id="add-panel-waiting">
     <h4>Add to Waiting List — Bulk</h4>
-    <textarea id="waiting-input" placeholder="Tên tiếng Việt | số chương mong muốn | fanqieID | ngày mong muốn (DD/MM/YYYY, tùy chọn)&#10;Ví dụ:&#10;Xuyên thành nông gia | 300 | 7506507753850948633 | 28/02/2026&#10;Đạo sư hệ thống | 200 | 7123456789012345678"></textarea>
+    <textarea id="waiting-input" placeholder="Tên tiếng Việt | số chương mong muốn | fanqieID | ngày mong muốn (DD/MM/YYYY, tùy chọn)&#10;Ví dụ:&#10;Xuyên thành nông gia | 300 | 7506507753850948633 | 28/02/2026"></textarea>
     <div class="hint">Format: Vietnamese Title | Desired Chapters | Fanqie Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
     <div class="actions">
       <button class="btn primary" onclick="submitAdd('waiting')">Add Books</button>
@@ -289,14 +288,14 @@
   </div>
 </div>
 
-<!-- ==================== UPLOADING LIST ==================== -->
+<!-- UPLOADING LIST -->
 <div class="section" id="section-uploading">
   <div class="toolbar">
     <div class="toolbar-left">
       <button class="btn" onclick="toggleAddPanel('uploading')">+ Add Books</button>
       <button class="btn" onclick="selectAllVisible('uploading')">Select All</button>
       <span class="select-count" id="trans-sel-count" style="display:none"></span>
-      <button class="btn" id="trans-update-btn" onclick="openUpdatePanel()" style="display:none">✏️ Update Chapters</button>
+      <button class="btn ghost" id="trans-desel-btn" onclick="deselectAll('uploading')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
     </div>
     <div class="toolbar-right">
@@ -311,7 +310,7 @@
   </div>
   <div class="add-panel" id="add-panel-uploading">
     <h4>Add Directly to Uploading List — Bulk</h4>
-    <textarea id="uploading-input" placeholder="wikiID | uploaded chapters | fanqieID&#10;Ví dụ:&#10;aTwMd0bIjhne~Hxh | 45 | 7506507753850948633&#10;bXy123 | 10 | 7123456789012345678"></textarea>
+    <textarea id="uploading-input" placeholder="wikiID | uploaded chapters | fanqieID&#10;Ví dụ:&#10;aTwMd0bIjhne~Hxh | 45 | 7506507753850948633"></textarea>
     <div class="hint">Format: Wiki Book ID | Uploaded Chapters | Fanqie Book ID (one per line)</div>
     <div class="actions">
       <button class="btn primary" onclick="submitAdd('uploading')">Add Books</button>
@@ -326,6 +325,7 @@
           <th onclick="setSortTrans('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
           <th onclick="setSortTrans('fanqie_chapters')">Fanqie Ch. <span class="sort-icon">↕</span></th>
           <th onclick="setSortTrans('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
+          <th>Set Uploaded ✏️</th>
           <th onclick="setSortTrans('ahead')">Ahead <span class="sort-icon">↕</span></th>
           <th onclick="setSortTrans('status')">Status <span class="sort-icon">↕</span></th>
           <th onclick="setSortTrans('last_updated')">Last Update <span class="sort-icon">↕</span></th>
@@ -337,18 +337,19 @@
   </div>
 </div>
 
-<!-- ==================== CHANGED ==================== -->
+<!-- CHANGED -->
 <div class="section" id="section-changed">
   <div class="toolbar">
     <div class="toolbar-left">
       <button class="btn" onclick="selectAllVisible('changed')">Select All</button>
       <span class="select-count" id="changed-sel-count" style="display:none"></span>
+      <button class="btn ghost" id="changed-desel-btn" onclick="deselectAll('changed')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="changed-del-btn" onclick="bulkDelete('changed')" style="display:none">🗑 Delete</button>
       <div class="filter-pills" id="changed-filters">
         <div class="pill active" data-filter="all" onclick="setChangedFilter('all')">All</div>
         <div class="pill" data-filter="completed" onclick="setChangedFilter('completed')">✅ Hoàn thành</div>
         <div class="pill" data-filter="stale" onclick="setChangedFilter('stale')">🕐 Stale 15d+</div>
-        <div class="pill" data-filter="behind" onclick="setChangedFilter('behind')">📚 10+ Unuploaded</div>
+        <div class="pill" data-filter="behind" onclick="setChangedFilter('behind')">📚 >10 Unuploaded</div>
       </div>
     </div>
   </div>
@@ -373,19 +374,16 @@
 
 </main>
 
-<!-- UPDATE PANEL (sticky bottom) -->
-<div id="update-panel">
+<!-- INLINE SAVE BAR — appears when any chapter input is changed -->
+<div id="inline-save-bar">
   <div class="inner">
-    <label>Update chapters — one <span class="mono" style="color:var(--accent)">fanqieID | new_chapter</span> per line:</label>
-    <textarea id="update-chapter-input" placeholder="7506507753850948633 | 102&#10;7123456789012345678 | 26" style="width:320px;min-height:70px;font-family:var(--mono);font-size:11px;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:6px 8px;border-radius:4px;outline:none;resize:vertical;"></textarea>
-    <div>
-      <button class="btn primary" onclick="submitUpdateChapters()">Apply</button>
-      <button class="btn" onclick="closeUpdatePanel()">Close</button>
-    </div>
+    <span class="hint">✏️ <strong id="pending-count">0</strong> unsaved chapter update(s)</span>
+    <button class="btn primary" onclick="submitInlineUpdates()">💾 Save All Changes</button>
+    <button class="btn ghost" onclick="discardInlineUpdates()">Discard</button>
   </div>
 </div>
 
-<!-- MOVE PANEL (sticky bottom) -->
+<!-- MOVE PANEL -->
 <div id="move-panel">
   <div class="inner">
     <label>Moving <strong id="move-count">0</strong> book(s) → Uploading. Add Wiki IDs (optional):</label>
@@ -413,9 +411,7 @@
 <div id="toast"></div>
 
 <script>
-// ============================================================
-// CONFIG & STATE
-// ============================================================
+// ── CONFIG & STATE ──────────────────────────────────────────
 let CFG = { repo: '', token: '' };
 let waitingList = [];
 let uploadingList = [];
@@ -425,7 +421,9 @@ let selectedChanged = new Set();
 let changedFilter = 'all';
 let sortWaiting = 'default';
 let sortTrans = 'default';
-let lastSync = null;
+
+// Pending inline updates: Map<fanqie_id, newValue (number)>
+let pendingUpdates = new Map();
 
 function saveConfig() {
   CFG.repo = document.getElementById('cfg-repo').value.trim();
@@ -452,9 +450,7 @@ async function testConfig() {
   } catch(e) { toast('Connection failed: ' + e.message, 'error'); }
 }
 
-// ============================================================
-// GITHUB API
-// ============================================================
+// ── GITHUB API ──────────────────────────────────────────────
 async function ghApi(path, options = {}) {
   const res = await fetch(`https://api.github.com${path}`, {
     ...options,
@@ -508,9 +504,7 @@ async function putFile(filename, content, sha) {
   });
 }
 
-// ============================================================
-// LOAD DATA
-// ============================================================
+// ── LOAD DATA ───────────────────────────────────────────────
 async function loadData() {
   if (!CFG.repo || !CFG.token) {
     switchTab('settings');
@@ -525,8 +519,9 @@ async function loadData() {
     ]);
     waitingList = w.data;
     uploadingList = t.data;
-    lastSync = new Date();
-    document.getElementById('sync-info').textContent = 'synced ' + lastSync.toLocaleTimeString();
+    document.getElementById('sync-info').textContent = 'synced ' + new Date().toLocaleTimeString();
+    pendingUpdates.clear();
+    updateSaveBar();
     renderAll();
     toast('Data loaded.', 'success');
   } catch(e) {
@@ -547,9 +542,7 @@ async function saveUploading() {
   await putFile('uploading_list.json', uploadingList, sha);
 }
 
-// ============================================================
-// TRIGGER SCRAPER
-// ============================================================
+// ── SCRAPER ─────────────────────────────────────────────────
 async function triggerScraper() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const btn = document.getElementById('scrape-btn');
@@ -560,9 +553,8 @@ async function triggerScraper() {
       method: 'POST',
       body: JSON.stringify({ ref: 'main' })
     });
-    toast('Scraper triggered! Auto-refreshing data in ~75s.', 'success');
+    toast('Scraper triggered! Auto-refreshing in ~75s.', 'success');
     btn.innerHTML = '⏳ Running…';
-    // Auto-reload data after 75s (scraper usually finishes by then)
     setTimeout(async () => {
       await loadData();
       btn.disabled = false;
@@ -575,9 +567,7 @@ async function triggerScraper() {
   }
 }
 
-// ============================================================
-// TABS
-// ============================================================
+// ── TABS ────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t, i) => {
     t.classList.toggle('active', ['waiting','uploading','changed','settings'][i] === tab);
@@ -586,14 +576,9 @@ function switchTab(tab) {
   document.getElementById('section-' + tab).classList.add('active');
 }
 
-// ============================================================
-// DESIRED DATE HELPERS
-// ============================================================
-
-// Parse DD/MM/YYYY → Date object (midnight local)
+// ── DATE HELPERS ────────────────────────────────────────────
 function parseDesiredDate(str) {
   if (!str) return null;
-  // Support both DD/MM/YYYY and YYYY-MM-DD (ISO)
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     const [y, m, d] = str.split('-').map(Number);
     return new Date(y, m - 1, d);
@@ -605,44 +590,29 @@ function parseDesiredDate(str) {
   return new Date(y, m - 1, d);
 }
 
-// Returns days until desired date (negative = overdue)
 function daysUntilDeadline(dateStr) {
   const target = parseDesiredDate(dateStr);
   if (!target) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date(); today.setHours(0,0,0,0);
   return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
 
-// Render the deadline badge for waiting list
 function fmtDeadline(dateStr) {
   if (!dateStr) return '<span class="deadline-none">—</span>';
   const days = daysUntilDeadline(dateStr);
   const target = parseDesiredDate(dateStr);
   if (!target) return '<span class="deadline-none">—</span>';
-
-  // Format display date as DD/MM/YYYY
-  const dd = String(target.getDate()).padStart(2, '0');
-  const mm = String(target.getMonth() + 1).padStart(2, '0');
-  const yyyy = target.getFullYear();
-  const display = `${dd}/${mm}/${yyyy}`;
-
-  if (days < 0) {
-    return `<span class="deadline-badge deadline-overdue">🔴 ${display} (${Math.abs(days)}d overdue)</span>`;
-  } else if (days === 0) {
-    return `<span class="deadline-badge deadline-urgent">🔴 TODAY</span>`;
-  } else if (days <= 3) {
-    return `<span class="deadline-badge deadline-urgent">🔴 ${display} (${days}d left)</span>`;
-  } else if (days <= 7) {
-    return `<span class="deadline-badge deadline-soon">🟡 ${display} (${days}d left)</span>`;
-  } else {
-    return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
-  }
+  const dd = String(target.getDate()).padStart(2,'0');
+  const mm = String(target.getMonth()+1).padStart(2,'0');
+  const display = `${dd}/${mm}/${target.getFullYear()}`;
+  if (days < 0)  return `<span class="deadline-badge deadline-overdue">🔴 ${display} (${Math.abs(days)}d overdue)</span>`;
+  if (days === 0) return `<span class="deadline-badge deadline-urgent">🔴 TODAY</span>`;
+  if (days <= 3) return `<span class="deadline-badge deadline-urgent">🔴 ${display} (${days}d left)</span>`;
+  if (days <= 7) return `<span class="deadline-badge deadline-soon">🟡 ${display} (${days}d left)</span>`;
+  return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
 }
 
-// ============================================================
-// RENDER HELPERS
-// ============================================================
+// ── RENDER HELPERS ──────────────────────────────────────────
 function fmtStatus(status) {
   if (!status) return '<span class="tag tag-blue">—</span>';
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
@@ -652,116 +622,130 @@ function fmtStatus(status) {
 
 function daysSince(dateStr) {
   if (!dateStr) return 9999;
-  const d = new Date(dateStr);
-  return Math.floor((Date.now() - d.getTime()) / 86400000);
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
 
 function fmtDate(dateStr) {
   if (!dateStr) return '<span style="color:var(--text3)">—</span>';
   const d = daysSince(dateStr);
-  let cls = d >= 15 ? 'color:var(--red)' : d >= 7 ? 'color:var(--yellow)' : 'color:var(--text2)';
+  const cls = d >= 15 ? 'color:var(--red)' : d >= 7 ? 'color:var(--yellow)' : 'color:var(--text2)';
   return `<span style="${cls}" class="mono">${dateStr.slice(0,10)}</span>`;
 }
 
 function aheadBadge(fanqie_ch, uploaded_ch) {
-  const diff = (fanqie_ch || 0) - (uploaded_ch || 0);
+  const diff = (fanqie_ch||0) - (uploaded_ch||0);
   if (diff <= 0) return `<span class="ahead ok">0</span>`;
-  const cls = diff >= 10 ? 'danger' : diff >= 5 ? 'warn' : 'ok';
+  const cls = diff >= 11 ? 'danger' : diff >= 5 ? 'warn' : 'ok';
   return `<span class="ahead ${cls}">+${diff}</span>`;
 }
 
 function getWarnTags(book) {
   const tags = [];
-  const status = (book.status || '').toLowerCase();
-  if (status.includes('已完结') || status.includes('hoàn thành')) {
+  const status = (book.status||'').toLowerCase();
+  if (status.includes('已完结') || status.includes('hoàn thành'))
     tags.push('<span class="tag tag-orange">✅ Hoàn thành</span>');
-  }
-  if (daysSince(book.last_updated) >= 15) {
-    tags.push('<span class="tag tag-red">🕐 Stale ' + daysSince(book.last_updated) + 'd</span>');
-  }
-  const ahead = (book.fanqie_chapters || 0) - (book.uploaded_chapters || 0);
-  if (ahead >= 10) {
-    tags.push('<span class="tag tag-purple">📚 +' + ahead + ' ch</span>');
-  }
+  if (daysSince(book.last_updated) >= 15)
+    tags.push('<span class="tag tag-red">🕐 Stale '+daysSince(book.last_updated)+'d</span>');
+  const ahead = (book.fanqie_chapters||0) - (book.uploaded_chapters||0);
+  if (ahead >= 11)
+    tags.push('<span class="tag tag-purple">📚 +'+ahead+' ch</span>');
   return tags;
 }
 
-function isChangedBook(book) {
-  return getWarnTags(book).length > 0;
-}
+function isChangedBook(b) { return getWarnTags(b).length > 0; }
 
 function matchChangedFilter(book) {
   if (changedFilter === 'all') return true;
-  const status = (book.status || '').toLowerCase();
-  if (changedFilter === 'completed') return status.includes('已完结') || status.includes('hoàn thành');
+  const s = (book.status||'').toLowerCase();
+  if (changedFilter === 'completed') return s.includes('已完结') || s.includes('hoàn thành');
   if (changedFilter === 'stale') return daysSince(book.last_updated) >= 15;
-  if (changedFilter === 'behind') return ((book.fanqie_chapters || 0) - (book.uploaded_chapters || 0)) >= 10;
+  if (changedFilter === 'behind') return ((book.fanqie_chapters||0)-(book.uploaded_chapters||0)) >= 11;
   return true;
 }
 
-// ============================================================
-// RENDER WAITING
-// ============================================================
+// ── INLINE UPDATE LOGIC ─────────────────────────────────────
+function onInlineInput(fanqieId, rawVal) {
+  const book = uploadingList.find(b => b.fanqie_id === fanqieId);
+  if (!book) return;
+  const val = parseInt(rawVal);
+  if (!isNaN(val) && val !== book.uploaded_chapters) {
+    pendingUpdates.set(fanqieId, val);
+  } else {
+    pendingUpdates.delete(fanqieId);
+  }
+  // Update just the input's visual state (no full re-render to preserve focus)
+  const input = document.querySelector(`.inline-ch-input[data-fid="${fanqieId}"]`);
+  if (input) input.classList.toggle('pending', pendingUpdates.has(fanqieId));
+  updateSaveBar();
+}
+
+function updateSaveBar() {
+  const n = pendingUpdates.size;
+  document.getElementById('pending-count').textContent = n;
+  document.getElementById('inline-save-bar').classList.toggle('open', n > 0);
+}
+
+async function submitInlineUpdates() {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  if (!pendingUpdates.size) return;
+  pendingUpdates.forEach((val, id) => {
+    const book = uploadingList.find(b => b.fanqie_id === id);
+    if (book) book.uploaded_chapters = val;
+  });
+  const count = pendingUpdates.size;
+  pendingUpdates.clear();
+  updateSaveBar();
+  await saveUploading();
+  renderUploading();
+  renderChanged();
+  toast(`Saved ${count} chapter update(s).`, 'success');
+}
+
+function discardInlineUpdates() {
+  pendingUpdates.clear();
+  updateSaveBar();
+  renderUploading(); // reset input values
+}
+
+// ── RENDER WAITING ──────────────────────────────────────────
 function sortedWaiting() {
   let arr = [...waitingList];
-  const s = document.getElementById('waiting-sort')?.value || sortWaiting;
+  const s = document.getElementById('waiting-sort')?.value || 'default';
   if (s === 'chapters_asc') arr.sort((a,b) => (a.current_chapters||0)-(b.current_chapters||0));
   if (s === 'chapters_desc') arr.sort((a,b) => (b.current_chapters||0)-(a.current_chapters||0));
   if (s === 'updated_asc') arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
   if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
-  if (s === 'deadline_asc') arr.sort((a,b) => {
-    const da = daysUntilDeadline(a.desired_date) ?? 99999;
-    const db = daysUntilDeadline(b.desired_date) ?? 99999;
-    return da - db;
-  });
-  if (s === 'deadline_desc') arr.sort((a,b) => {
-    const da = daysUntilDeadline(a.desired_date) ?? -99999;
-    const db = daysUntilDeadline(b.desired_date) ?? -99999;
-    return db - da;
-  });
-  if (s === 'ready') arr.sort((a,b) => {
-    const ra = (a.current_chapters||0) >= (a.desired_chapters||0) ? 0 : 1;
-    const rb = (b.current_chapters||0) >= (b.desired_chapters||0) ? 0 : 1;
-    return ra - rb;
-  });
+  if (s === 'deadline_asc') arr.sort((a,b) => (daysUntilDeadline(a.desired_date)??99999)-(daysUntilDeadline(b.desired_date)??99999));
+  if (s === 'deadline_desc') arr.sort((a,b) => (daysUntilDeadline(b.desired_date)??-99999)-(daysUntilDeadline(a.desired_date)??-99999));
+  if (s === 'ready') arr.sort((a,b) => ((a.current_chapters||0)>=(a.desired_chapters||0)?0:1) - ((b.current_chapters||0)>=(b.desired_chapters||0)?0:1));
   return arr;
 }
 
 function renderWaiting() {
   const tbody = document.getElementById('waiting-tbody');
   const arr = sortedWaiting();
-  let anyReady = false;
-  let anyUrgent = false;
-
+  let anyReady = false, anyUrgent = false;
   if (!arr.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="icon">📋</div>No books in waiting list</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">📋</div>No books in waiting list</div></td></tr>`;
     updateBadges(); return;
   }
   tbody.innerHTML = arr.map(book => {
-    const chReady = (book.current_chapters || 0) >= (book.desired_chapters || 0);
+    const chReady = (book.current_chapters||0) >= (book.desired_chapters||0);
     if (chReady) anyReady = true;
-
-    // Deadline urgency check for banner
     const dDays = daysUntilDeadline(book.desired_date);
     if (dDays !== null && dDays <= 3) anyUrgent = true;
-
     const readyTag = chReady
       ? '<span class="tag tag-green">✓ READY</span>'
       : `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${book.desired_chapters}</span>`;
     const chPct = Math.min(100, Math.round(((book.current_chapters||0)/(book.desired_chapters||1))*100));
-    const fillCls = chPct >= 100 ? 'progress-fill' : chPct >= 70 ? 'progress-fill warn' : 'progress-fill danger';
-    return `<tr class="${selectedWaiting.has(book.fanqie_id) ? 'selected' : ''}" data-id="${book.fanqie_id}">
+    const fillCls = chPct>=100?'progress-fill':chPct>=70?'progress-fill warn':'progress-fill danger';
+    return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${book.fanqie_id}">
       <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${book.fanqie_id}',this.checked)"></td>
       <td class="title-cell">
-        <div class="title-main">${book.wiki_id ? `<a href="https://wikicv.net/truyen/${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" title="${book.vi_title||''}">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</a>` : (book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>')}</div>
+        <div class="title-main">${book.wiki_id?`<a href="https://wikicv.net/truyen/${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</a>`:(book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>')}</div>
         <div class="title-id"><a href="https://fanqienovel.com/page/${book.fanqie_id}" target="_blank" class="link">${book.fanqie_id}</a></div>
       </td>
-      <td>
-        <div class="progress-wrap">
-          <div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div>
-          <span class="mono">${book.current_chapters||'?'}</span>
-        </div>
-      </td>
+      <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
       <td class="mono">${book.desired_chapters}</td>
       <td>${fmtStatus(book.status)}</td>
       <td>${fmtDate(book.last_updated)}</td>
@@ -771,20 +755,17 @@ function renderWaiting() {
   }).join('');
   document.getElementById('waiting-ready-banner').style.display = anyReady ? 'flex' : 'none';
   document.getElementById('waiting-deadline-banner').style.display = anyUrgent ? 'flex' : 'none';
-  updateSelectionUI();
-  updateBadges();
+  updateSelectionUI(); updateBadges();
 }
 
-// ============================================================
-// RENDER UPLOADING
-// ============================================================
+// ── RENDER UPLOADING (with inline update column) ─────────────
 function sortedUploading() {
   let arr = [...uploadingList];
-  const s = document.getElementById('trans-sort')?.value || sortTrans;
-  if (s === 'ahead_desc') arr.sort((a,b) => ((b.fanqie_chapters||0)-(b.uploaded_chapters||0)) - ((a.fanqie_chapters||0)-(a.uploaded_chapters||0)));
-  if (s === 'ahead_asc') arr.sort((a,b) => ((a.fanqie_chapters||0)-(a.uploaded_chapters||0)) - ((b.fanqie_chapters||0)-(b.uploaded_chapters||0)));
-  if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
-  if (s === 'updated_asc') arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
+  const s = document.getElementById('trans-sort')?.value || 'default';
+  if (s === 'ahead_desc') arr.sort((a,b)=>((b.fanqie_chapters||0)-(b.uploaded_chapters||0))-((a.fanqie_chapters||0)-(a.uploaded_chapters||0)));
+  if (s === 'ahead_asc')  arr.sort((a,b)=>((a.fanqie_chapters||0)-(a.uploaded_chapters||0))-((b.fanqie_chapters||0)-(b.uploaded_chapters||0)));
+  if (s === 'updated_desc') arr.sort((a,b)=>(b.last_updated||'').localeCompare(a.last_updated||''));
+  if (s === 'updated_asc')  arr.sort((a,b)=>(a.last_updated||'').localeCompare(b.last_updated||''));
   return arr;
 }
 
@@ -792,34 +773,48 @@ function renderUploading() {
   const tbody = document.getElementById('uploading-tbody');
   const arr = sortedUploading();
   if (!arr.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">✍️</div>No books in uploading list</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="icon">✍️</div>No books in uploading list</div></td></tr>`;
     updateBadges(); return;
   }
   tbody.innerHTML = arr.map(book => {
-    const wikiId = book.wiki_id ? book.wiki_id.replace(/~/g, '%7E') : null;
+    const wikiId = book.wiki_id ? book.wiki_id.replace(/~/g,'%7E') : null;
     const wikiLink = wikiId ? `<a href="https://wikicv.net/truyen/${wikiId}" target="_blank" class="link" title="Wiki">W</a>` : '<span style="color:var(--text3)">—</span>';
     const fanqieLink = `<a href="https://fanqienovel.com/page/${book.fanqie_id}" target="_blank" class="link" title="Fanqie">F</a>`;
-    return `<tr class="${selectedUploading.has(book.fanqie_id) ? 'selected' : ''}" data-id="${book.fanqie_id}">
+    // Show pending value if exists, otherwise current
+    const displayVal = pendingUpdates.has(book.fanqie_id) ? pendingUpdates.get(book.fanqie_id) : (book.uploaded_chapters||0);
+    const isPending = pendingUpdates.has(book.fanqie_id);
+    const safeTitle = (book.vi_title||book.fanqie_id).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${book.fanqie_id}">
       <td class="check-col"><input type="checkbox" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${book.fanqie_id}',this.checked)"></td>
       <td class="title-cell">
-        <div class="title-main" title="${book.vi_title||''}">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</div>
+        <div class="title-main" title="${safeTitle}">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</div>
         <div class="title-id">wiki: ${book.wiki_id||'—'}</div>
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
       <td class="mono">${book.uploaded_chapters||0}</td>
+      <td>
+        <div class="inline-update-wrap">
+          <input
+            type="number"
+            class="inline-ch-input${isPending?' pending':''}"
+            data-fid="${book.fanqie_id}"
+            value="${displayVal}"
+            min="0"
+            title="Update uploaded chapters for: ${safeTitle}"
+            oninput="onInlineInput('${book.fanqie_id}', this.value)"
+          />
+        </div>
+      </td>
       <td>${aheadBadge(book.fanqie_chapters, book.uploaded_chapters)}</td>
       <td>${fmtStatus(book.status)}</td>
       <td>${fmtDate(book.last_updated)}</td>
       <td style="white-space:nowrap">${fanqieLink} ${wikiLink}</td>
     </tr>`;
   }).join('');
-  updateSelectionUI();
-  updateBadges();
+  updateSelectionUI(); updateBadges();
 }
 
-// ============================================================
-// RENDER CHANGED
-// ============================================================
+// ── RENDER CHANGED ──────────────────────────────────────────
 function renderChanged() {
   const tbody = document.getElementById('changed-tbody');
   const arr = uploadingList.filter(b => isChangedBook(b) && matchChangedFilter(b));
@@ -827,273 +822,196 @@ function renderChanged() {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">✅</div>No alerts</div></td></tr>`;
     updateBadges(); return;
   }
-  tbody.innerHTML = arr.map(book => {
-    return `<tr class="${selectedChanged.has(book.fanqie_id) ? 'selected' : ''}" data-id="${book.fanqie_id}">
-      <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${book.fanqie_id}',this.checked)"></td>
-      <td class="title-cell">
-        <div class="title-main">${book.vi_title||'—'}</div>
-        <div class="title-id">${book.fanqie_id}</div>
-      </td>
-      <td class="mono">${book.fanqie_chapters||'?'}</td>
-      <td class="mono">${book.uploaded_chapters||0}</td>
-      <td>${aheadBadge(book.fanqie_chapters, book.uploaded_chapters)}</td>
-      <td>${fmtStatus(book.status)}</td>
-      <td>${fmtDate(book.last_updated)}</td>
-      <td><div class="warn-tags">${getWarnTags(book).join('')}</div></td>
-    </tr>`;
-  }).join('');
-  updateSelectionUI();
-  updateBadges();
+  tbody.innerHTML = arr.map(book => `<tr class="${selectedChanged.has(book.fanqie_id)?'selected':''}" data-id="${book.fanqie_id}">
+    <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${book.fanqie_id}',this.checked)"></td>
+    <td class="title-cell">
+      <div class="title-main">${book.vi_title||'—'}</div>
+      <div class="title-id">${book.fanqie_id}</div>
+    </td>
+    <td class="mono">${book.fanqie_chapters||'?'}</td>
+    <td class="mono">${book.uploaded_chapters||0}</td>
+    <td>${aheadBadge(book.fanqie_chapters, book.uploaded_chapters)}</td>
+    <td>${fmtStatus(book.status)}</td>
+    <td>${fmtDate(book.last_updated)}</td>
+    <td><div class="warn-tags">${getWarnTags(book).join('')}</div></td>
+  </tr>`).join('');
+  updateSelectionUI(); updateBadges();
 }
 
 function setChangedFilter(f) {
   changedFilter = f;
-  document.querySelectorAll('#changed-filters .pill').forEach(p => {
-    p.classList.toggle('active', p.dataset.filter === f);
-  });
+  document.querySelectorAll('#changed-filters .pill').forEach(p => p.classList.toggle('active', p.dataset.filter===f));
   renderChanged();
 }
 
-function renderAll() {
-  renderWaiting();
-  renderUploading();
-  renderChanged();
-  updateBadges();
-}
+function renderAll() { renderWaiting(); renderUploading(); renderChanged(); updateBadges(); }
 
 function updateBadges() {
-  const readyCount = waitingList.filter(b => (b.current_chapters||0) >= (b.desired_chapters||0)).length;
-  document.getElementById('waiting-count-badge').textContent = waitingList.length || '';
-  document.getElementById('trans-count-badge').textContent = uploadingList.length || '';
-  const changedCount = uploadingList.filter(isChangedBook).length;
-  document.getElementById('changed-count-badge').textContent = changedCount || '';
+  document.getElementById('waiting-count-badge').textContent = waitingList.length||'';
+  document.getElementById('trans-count-badge').textContent = uploadingList.length||'';
+  document.getElementById('changed-count-badge').textContent = uploadingList.filter(isChangedBook).length||'';
 }
 
-// ============================================================
-// SELECTION
-// ============================================================
+// ── SELECTION ───────────────────────────────────────────────
 function toggleSelect(list, id, checked) {
-  const set = list === 'waiting' ? selectedWaiting : list === 'uploading' ? selectedUploading : selectedChanged;
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
   if (checked) set.add(id); else set.delete(id);
   updateSelectionUI();
-  if (list === 'waiting') renderWaiting();
-  else if (list === 'uploading') renderUploading();
-  else renderChanged();
+  if (list==='waiting') renderWaiting(); else if (list==='uploading') renderUploading(); else renderChanged();
 }
 
 function toggleCheckAll(list, checked) {
-  const set = list === 'waiting' ? selectedWaiting : list === 'uploading' ? selectedUploading : selectedChanged;
-  const source = list === 'waiting' ? sortedWaiting() : list === 'uploading' ? sortedUploading() : uploadingList.filter(b => isChangedBook(b) && matchChangedFilter(b));
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
+  const src = list==='waiting'?sortedWaiting():list==='uploading'?sortedUploading():uploadingList.filter(b=>isChangedBook(b)&&matchChangedFilter(b));
   set.clear();
-  if (checked) source.forEach(b => set.add(b.fanqie_id));
+  if (checked) src.forEach(b=>set.add(b.fanqie_id));
   updateSelectionUI();
-  if (list === 'waiting') renderWaiting();
-  else if (list === 'uploading') renderUploading();
-  else renderChanged();
+  if (list==='waiting') renderWaiting(); else if (list==='uploading') renderUploading(); else renderChanged();
 }
 
 function selectAllVisible(list) {
-  const set = list === 'waiting' ? selectedWaiting : list === 'uploading' ? selectedUploading : selectedChanged;
-  const source = list === 'waiting' ? sortedWaiting() : list === 'uploading' ? sortedUploading() : uploadingList.filter(b => isChangedBook(b) && matchChangedFilter(b));
-  source.forEach(b => set.add(b.fanqie_id));
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
+  const src = list==='waiting'?sortedWaiting():list==='uploading'?sortedUploading():uploadingList.filter(b=>isChangedBook(b)&&matchChangedFilter(b));
+  src.forEach(b=>set.add(b.fanqie_id));
+  updateSelectionUI(); renderAll();
+}
+
+function deselectAll(list) {
+  if (list==='waiting') { selectedWaiting.clear(); renderWaiting(); }
+  else if (list==='uploading') { selectedUploading.clear(); renderUploading(); }
+  else { selectedChanged.clear(); renderChanged(); }
   updateSelectionUI();
-  renderAll();
 }
 
 function updateSelectionUI() {
-  // Waiting
   const wc = selectedWaiting.size;
   document.getElementById('waiting-sel-count').textContent = `${wc} selected`;
   document.getElementById('waiting-sel-count').style.display = wc ? 'inline-flex' : 'none';
+  document.getElementById('waiting-desel-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-del-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-promote-btn').style.display = wc ? 'inline-flex' : 'none';
-  // Uploading
+
   const tc = selectedUploading.size;
   document.getElementById('trans-sel-count').textContent = `${tc} selected`;
   document.getElementById('trans-sel-count').style.display = tc ? 'inline-flex' : 'none';
-  document.getElementById('trans-update-btn').style.display = tc ? 'inline-flex' : 'none';
+  document.getElementById('trans-desel-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-del-btn').style.display = tc ? 'inline-flex' : 'none';
-  // Changed
+
   const cc = selectedChanged.size;
   document.getElementById('changed-sel-count').textContent = `${cc} selected`;
   document.getElementById('changed-sel-count').style.display = cc ? 'inline-flex' : 'none';
+  document.getElementById('changed-desel-btn').style.display = cc ? 'inline-flex' : 'none';
   document.getElementById('changed-del-btn').style.display = cc ? 'inline-flex' : 'none';
 }
 
-// ============================================================
-// ADD PANELS
-// ============================================================
+// ── ADD PANELS ──────────────────────────────────────────────
 function toggleAddPanel(list) {
-  const el = document.getElementById(`add-panel-${list}`);
-  el.classList.toggle('open');
+  document.getElementById(`add-panel-${list}`).classList.toggle('open');
 }
 
 async function submitAdd(list) {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const raw = document.getElementById(`${list}-input`).value.trim();
   if (!raw) { toast('Nothing to add.', 'error'); return; }
-  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
   let added = 0;
   if (list === 'waiting') {
     for (const line of lines) {
-      const parts = line.split('|').map(p => p.trim());
+      const parts = line.split('|').map(p=>p.trim());
       if (parts.length < 3) { toast(`Invalid line: ${line}`, 'error'); continue; }
       const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
       const desired = parseInt(desired_str);
       if (!fanqie_id || isNaN(desired)) { toast(`Invalid: ${line}`, 'error'); continue; }
-      if (waitingList.find(b => b.fanqie_id === fanqie_id)) { toast(`Already in waiting: ${fanqie_id}`, 'error'); continue; }
-
-      // Validate desired_date if provided
+      if (waitingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Already in waiting: ${fanqie_id}`, 'error'); continue; }
       let desired_date = null;
       if (desired_date_raw) {
         const parsed = parseDesiredDate(desired_date_raw);
         if (!parsed) { toast(`Invalid date format "${desired_date_raw}" — use DD/MM/YYYY`, 'error'); continue; }
-        // Store in DD/MM/YYYY
         const dd = String(parsed.getDate()).padStart(2,'0');
         const mm = String(parsed.getMonth()+1).padStart(2,'0');
         desired_date = `${dd}/${mm}/${parsed.getFullYear()}`;
       }
-
       waitingList.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
       added++;
     }
-    if (added) { await saveWaiting(); renderWaiting(); document.getElementById('waiting-input').value = ''; toggleAddPanel('waiting'); toast(`Added ${added} book(s).`, 'success'); }
+    if (added) { await saveWaiting(); renderWaiting(); document.getElementById('waiting-input').value=''; toggleAddPanel('waiting'); toast(`Added ${added} book(s).`,'success'); }
   } else {
     for (const line of lines) {
-      const parts = line.split('|').map(p => p.trim());
+      const parts = line.split('|').map(p=>p.trim());
       if (parts.length < 3) { toast(`Invalid line: ${line}`, 'error'); continue; }
       const [wiki_id, ch_str, fanqie_id] = parts;
       const uploaded = parseInt(ch_str);
       if (!fanqie_id || isNaN(uploaded)) { toast(`Invalid: ${line}`, 'error'); continue; }
-      if (uploadingList.find(b => b.fanqie_id === fanqie_id)) { toast(`Already in uploading: ${fanqie_id}`, 'error'); continue; }
+      if (uploadingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Already in uploading: ${fanqie_id}`, 'error'); continue; }
       uploadingList.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
       added++;
     }
-    if (added) { await saveUploading(); renderUploading(); document.getElementById('uploading-input').value = ''; toggleAddPanel('uploading'); toast(`Added ${added} book(s).`, 'success'); }
+    if (added) { await saveUploading(); renderUploading(); document.getElementById('uploading-input').value=''; toggleAddPanel('uploading'); toast(`Added ${added} book(s).`,'success'); }
   }
 }
 
-// ============================================================
-// MOVE TO UPLOADING
-// ============================================================
+// ── MOVE TO UPLOADING ───────────────────────────────────────
 function openMovePanel() {
   if (!selectedWaiting.size) return;
-  const books = [...selectedWaiting].map(id => waitingList.find(b => b.fanqie_id === id)).filter(Boolean);
+  const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
   document.getElementById('move-count').textContent = books.length;
-  document.getElementById('move-books-hint').textContent = 'Books: ' + books.map(b => b.vi_title || b.fanqie_id).join(', ');
+  document.getElementById('move-books-hint').textContent = 'Books: ' + books.map(b=>b.vi_title||b.fanqie_id).join(', ');
   document.getElementById('move-wiki-input').value = '';
   document.getElementById('move-panel').classList.add('open');
 }
 
-function closeMovePanel() {
-  document.getElementById('move-panel').classList.remove('open');
-}
+function closeMovePanel() { document.getElementById('move-panel').classList.remove('open'); }
 
 async function submitMove() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  const books = [...selectedWaiting].map(id => waitingList.find(b => b.fanqie_id === id)).filter(Boolean);
+  const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
   const wikiLines = document.getElementById('move-wiki-input').value.split('\n');
-  for (let i = 0; i < books.length; i++) {
+  for (let i=0; i<books.length; i++) {
     const book = books[i];
-    const wiki_id = (wikiLines[i] || '').trim() || null;
-    if (uploadingList.find(b => b.fanqie_id === book.fanqie_id)) continue;
-    uploadingList.push({
-      vi_title: book.vi_title,
-      wiki_id,
-      fanqie_id: book.fanqie_id,
-      uploaded_chapters: 0,
-      fanqie_chapters: book.current_chapters,
-      status: book.status,
-      last_updated: book.last_updated
-    });
-    waitingList = waitingList.filter(b => b.fanqie_id !== book.fanqie_id);
+    const wiki_id = (wikiLines[i]||'').trim()||null;
+    if (uploadingList.find(b=>b.fanqie_id===book.fanqie_id)) continue;
+    uploadingList.push({ vi_title: book.vi_title, wiki_id, fanqie_id: book.fanqie_id, uploaded_chapters: 0, fanqie_chapters: book.current_chapters, status: book.status, last_updated: book.last_updated });
+    waitingList = waitingList.filter(b=>b.fanqie_id!==book.fanqie_id);
   }
   selectedWaiting.clear();
   await Promise.all([saveWaiting(), saveUploading()]);
-  closeMovePanel();
-  renderAll();
+  closeMovePanel(); renderAll();
   toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
 }
 
-// ============================================================
-// UPDATE CHAPTERS
-// ============================================================
-function openUpdatePanel() {
-  if (!selectedUploading.size) return;
-  const lines = [...selectedUploading].map(id => {
-    const book = uploadingList.find(b => b.fanqie_id === id);
-    return `${id} | ${book ? book.uploaded_chapters || 0 : 0}`;
-  }).join('\n');
-  document.getElementById('update-chapter-input').value = lines;
-  document.getElementById('update-panel').classList.add('open');
-}
-function closeUpdatePanel() {
-  document.getElementById('update-panel').classList.remove('open');
-}
-async function submitUpdateChapters() {
-  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  const lines = document.getElementById('update-chapter-input').value.split('\n').map(l => l.trim()).filter(Boolean);
-  let updated = 0;
-  for (const line of lines) {
-    const [fanqie_id, ch_str] = line.split('|').map(s => s.trim());
-    const val = parseInt(ch_str);
-    if (!fanqie_id || isNaN(val) || val < 0) { toast(`Invalid line: ${line}`, 'error'); continue; }
-    const book = uploadingList.find(b => b.fanqie_id === fanqie_id);
-    if (book) { book.uploaded_chapters = val; updated++; }
-  }
-  await saveUploading();
-  renderUploading();
-  renderChanged();
-  closeUpdatePanel();
-  toast(`Updated ${updated} book(s).`, 'success');
-}
-
-// ============================================================
-// DELETE
-// ============================================================
+// ── DELETE ──────────────────────────────────────────────────
 function bulkDelete(list) {
-  const set = list === 'waiting' ? selectedWaiting : list === 'uploading' ? selectedUploading : selectedChanged;
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
   if (!set.size) return;
-  showModal(
-    `Delete ${set.size} book(s)?`,
-    `This will permanently remove them from ${list} list.`,
-    async () => {
-      if (list === 'waiting') {
-        waitingList = waitingList.filter(b => !set.has(b.fanqie_id));
-        set.clear();
-        await saveWaiting();
-      } else {
-        uploadingList = uploadingList.filter(b => !set.has(b.fanqie_id));
-        set.clear();
-        await saveUploading();
-      }
-      renderAll();
-      toast('Deleted.', 'success');
+  showModal(`Delete ${set.size} book(s)?`, `This will permanently remove them from the ${list} list.`, async () => {
+    if (list==='waiting') {
+      waitingList = waitingList.filter(b=>!set.has(b.fanqie_id));
+      set.clear(); await saveWaiting();
+    } else {
+      uploadingList = uploadingList.filter(b=>!set.has(b.fanqie_id));
+      set.clear(); await saveUploading();
     }
-  );
+    renderAll(); toast('Deleted.', 'success');
+  });
 }
 
-// ============================================================
-// SORT
-// ============================================================
+// ── SORT ────────────────────────────────────────────────────
 function setSortWaiting(col) {
   const sel = document.getElementById('waiting-sort');
-  if (col === 'current_chapters') sel.value = sel.value === 'chapters_asc' ? 'chapters_desc' : 'chapters_asc';
-  if (col === 'last_updated') sel.value = sel.value === 'updated_asc' ? 'updated_desc' : 'updated_asc';
-  if (col === 'desired_date') sel.value = sel.value === 'deadline_asc' ? 'deadline_desc' : 'deadline_asc';
+  if (col==='current_chapters') sel.value = sel.value==='chapters_asc'?'chapters_desc':'chapters_asc';
+  if (col==='last_updated') sel.value = sel.value==='updated_asc'?'updated_desc':'updated_asc';
+  if (col==='desired_date') sel.value = sel.value==='deadline_asc'?'deadline_desc':'deadline_asc';
   renderWaiting();
 }
 
 function setSortTrans(col) {
   const sel = document.getElementById('trans-sort');
-  if (col === 'ahead') sel.value = sel.value === 'ahead_asc' ? 'ahead_desc' : 'ahead_asc';
-  if (col === 'last_updated') sel.value = sel.value === 'updated_asc' ? 'updated_desc' : 'updated_asc';
+  if (col==='ahead') sel.value = sel.value==='ahead_asc'?'ahead_desc':'ahead_asc';
+  if (col==='last_updated') sel.value = sel.value==='updated_asc'?'updated_desc':'updated_asc';
   renderUploading();
 }
 
-// ============================================================
-// MODAL
-// ============================================================
+// ── MODAL ───────────────────────────────────────────────────
 let _modalCallback = null;
 function showModal(title, body, onConfirm) {
   document.getElementById('modal-title').textContent = title;
@@ -1102,32 +1020,21 @@ function showModal(title, body, onConfirm) {
   document.getElementById('confirm-modal').classList.add('open');
 }
 function closeModal() { document.getElementById('confirm-modal').classList.remove('open'); }
-document.getElementById('modal-confirm-btn').onclick = async () => {
-  closeModal();
-  if (_modalCallback) await _modalCallback();
-};
+document.getElementById('modal-confirm-btn').onclick = async () => { closeModal(); if (_modalCallback) await _modalCallback(); };
 
-// ============================================================
-// TOAST
-// ============================================================
+// ── TOAST ───────────────────────────────────────────────────
 let _toastTimer;
-function toast(msg, type = '') {
+function toast(msg, type='') {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = 'show ' + (type || '');
+  el.className = 'show '+(type||'');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
 }
 
-// ============================================================
-// INIT
-// ============================================================
+// ── INIT ────────────────────────────────────────────────────
 loadConfig();
-if (CFG.repo && CFG.token) {
-  loadData();
-} else {
-  switchTab('settings');
-}
+if (CFG.repo && CFG.token) loadData(); else switchTab('settings');
 </script>
 </body>
 </html>
