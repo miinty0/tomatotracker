@@ -62,6 +62,28 @@
   select:focus, input:focus { border-color: var(--accent); }
   select { cursor: pointer; }
 
+  /* ── SEARCH ── */
+  .search-wrap { position: relative; display: inline-flex; align-items: center; }
+  .search-icon { position: absolute; left: 8px; color: var(--text3); font-size: 13px; pointer-events: none; line-height: 1; }
+  .search-input {
+    padding-left: 26px !important;
+    width: 190px;
+    transition: border-color 0.15s, width 0.2s !important;
+  }
+  .search-input:focus { width: 250px; }
+  .search-input::placeholder { color: var(--text3); }
+  .search-clear {
+    position: absolute; right: 5px;
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 3px;
+    display: none; border-radius: 2px;
+  }
+  .search-clear:hover { color: var(--text2); }
+  .search-clear.visible { display: block; }
+  .search-result-count { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; display: none; }
+  .search-result-count.active { display: inline; color: var(--accent); }
+  mark.hl { background: rgba(79,158,255,0.22); color: var(--accent); border-radius: 2px; font-style: normal; }
+
   .add-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 10px; display: none; }
   .add-panel.open { display: block; }
   .add-panel h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: var(--mono); }
@@ -74,8 +96,8 @@
   table { width: 100%; border-collapse: collapse; }
   thead th { background: var(--surface); padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
   thead th:hover { color: var(--text2); }
-  thead th .sort-icon { margin-left: 3px; opacity: 0.4; }
-  thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+  thead th .sort-icon { margin-left: 3px; opacity: 0.4; font-style: normal; }
+  thead th.sort-active .sort-icon { opacity: 1; color: var(--accent); }
   tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
   tbody tr:hover { background: var(--surface); }
   tbody tr.selected { background: rgba(79,158,255,0.05); }
@@ -118,30 +140,19 @@
   .ahead.warn { color: var(--yellow); }
   .ahead.danger { color: var(--red); }
 
-  /* ── INLINE UPDATE COLUMN ── */
   .inline-update-wrap { display: flex; align-items: center; gap: 5px; }
   .inline-ch-input {
-    width: 68px;
-    padding: 3px 7px;
-    background: var(--bg);
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-    outline: none;
-    transition: border-color 0.15s, background 0.15s;
+    width: 68px; padding: 3px 7px; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 11px;
+    outline: none; transition: border-color 0.15s, background 0.15s;
   }
   .inline-ch-input:focus { border-color: var(--accent); }
   .inline-ch-input.pending { border-color: var(--yellow); background: rgba(245,197,66,0.06); color: var(--yellow); }
 
-  /* ── SAVE BAR (shown when pending edits exist) ── */
   #inline-save-bar {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--surface); border-top: 2px solid var(--yellow);
-    padding: 10px 16px; display: none; z-index: 200;
-    box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
-    animation: slideUp 0.2s ease;
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+    border-top: 2px solid var(--yellow); padding: 10px 16px; display: none; z-index: 200;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.4); animation: slideUp 0.2s ease;
   }
   #inline-save-bar.open { display: block; }
   @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -242,10 +253,21 @@
       <button class="btn" id="waiting-promote-btn" onclick="openMovePanel()" style="display:none">→ Move to Uploading</button>
     </div>
     <div class="toolbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="waiting-search"
+          placeholder="Search title or ID…"
+          oninput="onSearch('waiting')" />
+        <button class="search-clear" id="waiting-search-clear" onclick="clearSearch('waiting')" title="Clear">×</button>
+      </div>
+      <span class="search-result-count" id="waiting-search-count"></span>
       <select id="waiting-sort" onchange="renderWaiting()">
         <option value="default">Sort: Default</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="title_desc">Title Z→A</option>
         <option value="chapters_asc">Chapters ↑</option>
         <option value="chapters_desc">Chapters ↓</option>
+        <option value="status_asc">Status A→Z</option>
         <option value="updated_asc">Updated ↑ (Oldest)</option>
         <option value="updated_desc">Updated ↓ (Newest)</option>
         <option value="deadline_asc">Deadline ↑ (Soonest)</option>
@@ -274,12 +296,12 @@
       <thead>
         <tr>
           <th class="check-col"><input type="checkbox" id="waiting-check-all" onchange="toggleCheckAll('waiting', this.checked)"></th>
-          <th onclick="setSortWaiting('title')">Title <span class="sort-icon">↕</span></th>
-          <th onclick="setSortWaiting('current_chapters')">Chapters <span class="sort-icon">↕</span></th>
+          <th id="wth-title" onclick="setSortWaiting('title')">Title <span class="sort-icon">↕</span></th>
+          <th id="wth-chapters" onclick="setSortWaiting('current_chapters')">Chapters <span class="sort-icon">↕</span></th>
           <th>Desired Ch.</th>
-          <th onclick="setSortWaiting('status')">Status <span class="sort-icon">↕</span></th>
-          <th onclick="setSortWaiting('last_updated')">Last Update <span class="sort-icon">↕</span></th>
-          <th onclick="setSortWaiting('desired_date')">Desired Date <span class="sort-icon">↕</span></th>
+          <th id="wth-status" onclick="setSortWaiting('status')">Status <span class="sort-icon">↕</span></th>
+          <th id="wth-updated" onclick="setSortWaiting('last_updated')">Last Update <span class="sort-icon">↕</span></th>
+          <th id="wth-deadline" onclick="setSortWaiting('desired_date')">Desired Date <span class="sort-icon">↕</span></th>
           <th>Ready?</th>
         </tr>
       </thead>
@@ -299,10 +321,25 @@
       <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
     </div>
     <div class="toolbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="uploading-search"
+          placeholder="Search title or ID…"
+          oninput="onSearch('uploading')" />
+        <button class="search-clear" id="uploading-search-clear" onclick="clearSearch('uploading')" title="Clear">×</button>
+      </div>
+      <span class="search-result-count" id="uploading-search-count"></span>
       <select id="trans-sort" onchange="renderUploading()">
         <option value="default">Sort: Default</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="title_desc">Title Z→A</option>
         <option value="ahead_desc">Most Unuploaded</option>
         <option value="ahead_asc">Least Unuploaded</option>
+        <option value="fanqie_asc">Fanqie Ch. ↑</option>
+        <option value="fanqie_desc">Fanqie Ch. ↓</option>
+        <option value="uploaded_asc">Uploaded Ch. ↑</option>
+        <option value="uploaded_desc">Uploaded Ch. ↓</option>
+        <option value="status_asc">Status A→Z</option>
         <option value="updated_desc">Newest Update</option>
         <option value="updated_asc">Oldest Update</option>
       </select>
@@ -322,13 +359,13 @@
       <thead>
         <tr>
           <th class="check-col"><input type="checkbox" id="trans-check-all" onchange="toggleCheckAll('uploading', this.checked)"></th>
-          <th onclick="setSortTrans('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
-          <th onclick="setSortTrans('fanqie_chapters')">Fanqie Ch. <span class="sort-icon">↕</span></th>
-          <th onclick="setSortTrans('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
+          <th id="uth-title" onclick="setSortTrans('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
+          <th id="uth-fanqie" onclick="setSortTrans('fanqie_chapters')">Fanqie Ch. <span class="sort-icon">↕</span></th>
+          <th id="uth-uploaded" onclick="setSortTrans('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
           <th>Set Uploaded ✏️</th>
-          <th onclick="setSortTrans('ahead')">Ahead <span class="sort-icon">↕</span></th>
-          <th onclick="setSortTrans('status')">Status <span class="sort-icon">↕</span></th>
-          <th onclick="setSortTrans('last_updated')">Last Update <span class="sort-icon">↕</span></th>
+          <th id="uth-ahead" onclick="setSortTrans('ahead')">Ahead <span class="sort-icon">↕</span></th>
+          <th id="uth-status" onclick="setSortTrans('status')">Status <span class="sort-icon">↕</span></th>
+          <th id="uth-updated" onclick="setSortTrans('last_updated')">Last Update <span class="sort-icon">↕</span></th>
           <th>Links</th>
         </tr>
       </thead>
@@ -374,7 +411,6 @@
 
 </main>
 
-<!-- INLINE SAVE BAR — appears when any chapter input is changed -->
 <div id="inline-save-bar">
   <div class="inner">
     <span class="hint">✏️ <strong id="pending-count">0</strong> unsaved chapter update(s)</span>
@@ -383,7 +419,6 @@
   </div>
 </div>
 
-<!-- MOVE PANEL -->
 <div id="move-panel">
   <div class="inner">
     <label>Moving <strong id="move-count">0</strong> book(s) → Uploading. Add Wiki IDs (optional):</label>
@@ -396,7 +431,6 @@
   </div>
 </div>
 
-<!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal">
     <h3 id="modal-title">Confirm Action</h3>
@@ -419,12 +453,68 @@ let selectedWaiting = new Set();
 let selectedUploading = new Set();
 let selectedChanged = new Set();
 let changedFilter = 'all';
-let sortWaiting = 'default';
-let sortTrans = 'default';
-
-// Pending inline updates: Map<fanqie_id, newValue (number)>
 let pendingUpdates = new Map();
 
+// Search state
+let searchWaiting = '';
+let searchUploading = '';
+
+// Current sort column + direction (for header highlight)
+let sortStateWaiting = { col: null, dir: 'asc' };
+let sortStateTrans   = { col: null, dir: 'asc' };
+
+// ── SORT MAPS ───────────────────────────────────────────────
+// col key → [asc select value, desc select value]
+const WAITING_SORT_MAP = {
+  title:            ['title_asc',    'title_desc'],
+  current_chapters: ['chapters_asc', 'chapters_desc'],
+  status:           ['status_asc',   'status_asc'],
+  last_updated:     ['updated_asc',  'updated_desc'],
+  desired_date:     ['deadline_asc', 'deadline_desc'],
+};
+// col key → [asc, desc], and which <th> id to highlight
+const TRANS_SORT_MAP = {
+  vi_title:          ['title_asc',    'title_desc'],
+  fanqie_chapters:   ['fanqie_asc',   'fanqie_desc'],
+  uploaded_chapters: ['uploaded_asc', 'uploaded_desc'],
+  ahead:             ['ahead_asc',    'ahead_desc'],
+  status:            ['status_asc',   'status_asc'],
+  last_updated:      ['updated_asc',  'updated_desc'],
+};
+
+function setSortWaiting(col) {
+  const sel = document.getElementById('waiting-sort');
+  const [asc, desc] = WAITING_SORT_MAP[col] || ['default','default'];
+  // Toggle: if currently set to asc option, switch to desc; otherwise go asc
+  sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
+  renderWaiting();
+}
+
+function setSortTrans(col) {
+  const sel = document.getElementById('trans-sort');
+  const [asc, desc] = TRANS_SORT_MAP[col] || ['default','default'];
+  sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
+  renderUploading();
+}
+
+// Highlight the active sort column header
+function updateSortHeaders(table, sortMap, selectId) {
+  const val = document.getElementById(selectId)?.value || 'default';
+  Object.entries(sortMap).forEach(([col, [asc, desc]]) => {
+    const thId = table === 'waiting'
+      ? { title:'wth-title', current_chapters:'wth-chapters', status:'wth-status', last_updated:'wth-updated', desired_date:'wth-deadline' }[col]
+      : { vi_title:'uth-title', fanqie_chapters:'uth-fanqie', uploaded_chapters:'uth-uploaded', ahead:'uth-ahead', status:'uth-status', last_updated:'uth-updated' }[col];
+    if (!thId) return;
+    const th = document.getElementById(thId);
+    if (!th) return;
+    const isActive = val === asc || val === desc;
+    th.classList.toggle('sort-active', isActive);
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = isActive ? (val === desc && asc !== desc ? '↓' : '↑') : '↕';
+  });
+}
+
+// ── CONFIG ──────────────────────────────────────────────────
 function saveConfig() {
   CFG.repo = document.getElementById('cfg-repo').value.trim();
   CFG.token = document.getElementById('cfg-token').value.trim();
@@ -493,30 +583,17 @@ async function getFile(filename) {
 }
 
 async function putFile(filename, content, sha) {
-  const body = {
-    message: `Update ${filename} via web UI`,
-    content: utf8ToB64(JSON.stringify(content, null, 2)),
-  };
+  const body = { message: `Update ${filename} via web UI`, content: utf8ToB64(JSON.stringify(content, null, 2)) };
   if (sha) body.sha = sha;
-  return ghApi(`/repos/${CFG.repo}/contents/${filename}`, {
-    method: 'PUT',
-    body: JSON.stringify(body)
-  });
+  return ghApi(`/repos/${CFG.repo}/contents/${filename}`, { method: 'PUT', body: JSON.stringify(body) });
 }
 
 // ── LOAD DATA ───────────────────────────────────────────────
 async function loadData() {
-  if (!CFG.repo || !CFG.token) {
-    switchTab('settings');
-    toast('Please configure GitHub first.', 'error');
-    return;
-  }
+  if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
   document.getElementById('refresh-icon').className = 'spinner';
   try {
-    const [w, t] = await Promise.all([
-      getFile('waiting_list.json'),
-      getFile('uploading_list.json')
-    ]);
+    const [w, t] = await Promise.all([getFile('waiting_list.json'), getFile('uploading_list.json')]);
     waitingList = w.data;
     uploadingList = t.data;
     document.getElementById('sync-info').textContent = 'synced ' + new Date().toLocaleTimeString();
@@ -550,20 +627,14 @@ async function triggerScraper() {
   btn.innerHTML = '<span class="spinner"></span> Triggering…';
   try {
     await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
-      method: 'POST',
-      body: JSON.stringify({ ref: 'main' })
+      method: 'POST', body: JSON.stringify({ ref: 'main' })
     });
     toast('Scraper triggered! Auto-refreshing in ~75s.', 'success');
     btn.innerHTML = '⏳ Running…';
-    setTimeout(async () => {
-      await loadData();
-      btn.disabled = false;
-      btn.innerHTML = '▶ Run Scraper';
-    }, 75000);
+    setTimeout(async () => { await loadData(); btn.disabled = false; btn.innerHTML = '▶ Run Scraper'; }, 75000);
   } catch(e) {
     toast('Failed to trigger: ' + e.message, 'error');
-    btn.disabled = false;
-    btn.innerHTML = '▶ Run Scraper';
+    btn.disabled = false; btn.innerHTML = '▶ Run Scraper';
   }
 }
 
@@ -612,12 +683,57 @@ function fmtDeadline(dateStr) {
   return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
 }
 
+// ── SEARCH HELPERS ──────────────────────────────────────────
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function bookMatchesSearch(book, q) {
+  if (!q) return true;
+  const lq = q.toLowerCase();
+  return (book.vi_title||'').toLowerCase().includes(lq) || (book.fanqie_id||'').toLowerCase().includes(lq);
+}
+
+/** Highlight query match in plain text, returning safe HTML */
+function hl(text, q) {
+  const safe = esc(text);
+  if (!q || !text) return safe;
+  const lq = q.toLowerCase();
+  const lt = text.toLowerCase();
+  const i = lt.indexOf(lq);
+  if (i === -1) return safe;
+  return esc(text.slice(0,i)) + `<mark class="hl">${esc(text.slice(i, i+q.length))}</mark>` + esc(text.slice(i+q.length));
+}
+
+function onSearch(list) {
+  const val = document.getElementById(`${list}-search`).value;
+  const clearBtn = document.getElementById(`${list}-search-clear`);
+  clearBtn.classList.toggle('visible', val.length > 0);
+  if (list === 'waiting') { searchWaiting = val; renderWaiting(); }
+  else { searchUploading = val; renderUploading(); }
+}
+
+function clearSearch(list) {
+  document.getElementById(`${list}-search`).value = '';
+  document.getElementById(`${list}-search-clear`).classList.remove('visible');
+  if (list === 'waiting') { searchWaiting = ''; renderWaiting(); }
+  else { searchUploading = ''; renderUploading(); }
+}
+
+function setSearchCount(list, shown, total) {
+  const el = document.getElementById(`${list}-search-count`);
+  const q = list === 'waiting' ? searchWaiting : searchUploading;
+  if (!q) { el.className = 'search-result-count'; el.textContent = ''; return; }
+  el.className = 'search-result-count active';
+  el.textContent = `${shown} / ${total} match`;
+}
+
 // ── RENDER HELPERS ──────────────────────────────────────────
 function fmtStatus(status) {
   if (!status) return '<span class="tag tag-blue">—</span>';
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
   if (status.includes('已完结') || status.includes('hoàn thành')) return '<span class="tag tag-orange">Hoàn thành</span>';
-  return `<span class="tag tag-blue">${status}</span>`;
+  return `<span class="tag tag-blue">${esc(status)}</span>`;
 }
 
 function daysSince(dateStr) {
@@ -663,17 +779,13 @@ function matchChangedFilter(book) {
   return true;
 }
 
-// ── INLINE UPDATE LOGIC ─────────────────────────────────────
+// ── INLINE UPDATES ──────────────────────────────────────────
 function onInlineInput(fanqieId, rawVal) {
   const book = uploadingList.find(b => b.fanqie_id === fanqieId);
   if (!book) return;
   const val = parseInt(rawVal);
-  if (!isNaN(val) && val !== book.uploaded_chapters) {
-    pendingUpdates.set(fanqieId, val);
-  } else {
-    pendingUpdates.delete(fanqieId);
-  }
-  // Update just the input's visual state (no full re-render to preserve focus)
+  if (!isNaN(val) && val !== book.uploaded_chapters) pendingUpdates.set(fanqieId, val);
+  else pendingUpdates.delete(fanqieId);
   const input = document.querySelector(`.inline-ch-input[data-fid="${fanqieId}"]`);
   if (input) input.classList.toggle('pending', pendingUpdates.has(fanqieId));
   updateSaveBar();
@@ -696,39 +808,66 @@ async function submitInlineUpdates() {
   pendingUpdates.clear();
   updateSaveBar();
   await saveUploading();
-  renderUploading();
-  renderChanged();
+  renderUploading(); renderChanged();
   toast(`Saved ${count} chapter update(s).`, 'success');
 }
 
 function discardInlineUpdates() {
   pendingUpdates.clear();
   updateSaveBar();
-  renderUploading(); // reset input values
+  renderUploading();
 }
 
-// ── RENDER WAITING ──────────────────────────────────────────
+// ── SORTED/FILTERED ARRAYS ───────────────────────────────────
 function sortedWaiting() {
-  let arr = [...waitingList];
+  let arr = [...waitingList].filter(b => bookMatchesSearch(b, searchWaiting));
   const s = document.getElementById('waiting-sort')?.value || 'default';
+  if (s === 'title_asc')    arr.sort((a,b) => (a.vi_title||'').localeCompare(b.vi_title||'', 'vi'));
+  if (s === 'title_desc')   arr.sort((a,b) => (b.vi_title||'').localeCompare(a.vi_title||'', 'vi'));
   if (s === 'chapters_asc') arr.sort((a,b) => (a.current_chapters||0)-(b.current_chapters||0));
   if (s === 'chapters_desc') arr.sort((a,b) => (b.current_chapters||0)-(a.current_chapters||0));
-  if (s === 'updated_asc') arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
+  if (s === 'status_asc')   arr.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+  if (s === 'updated_asc')  arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
   if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
   if (s === 'deadline_asc') arr.sort((a,b) => (daysUntilDeadline(a.desired_date)??99999)-(daysUntilDeadline(b.desired_date)??99999));
-  if (s === 'deadline_desc') arr.sort((a,b) => (daysUntilDeadline(b.desired_date)??-99999)-(daysUntilDeadline(a.desired_date)??-99999));
-  if (s === 'ready') arr.sort((a,b) => ((a.current_chapters||0)>=(a.desired_chapters||0)?0:1) - ((b.current_chapters||0)>=(b.desired_chapters||0)?0:1));
+  if (s === 'deadline_desc') arr.sort((a,b) => (daysUntilDeadline(b.desired_date)??99999)-(daysUntilDeadline(a.desired_date)??99999));
+  if (s === 'ready') arr.sort((a,b) => ((a.current_chapters||0)>=(a.desired_chapters||0)?0:1)-((b.current_chapters||0)>=(b.desired_chapters||0)?0:1));
   return arr;
 }
 
+function sortedUploading() {
+  let arr = [...uploadingList].filter(b => bookMatchesSearch(b, searchUploading));
+  const s = document.getElementById('trans-sort')?.value || 'default';
+  if (s === 'title_asc')    arr.sort((a,b) => (a.vi_title||'').localeCompare(b.vi_title||'', 'vi'));
+  if (s === 'title_desc')   arr.sort((a,b) => (b.vi_title||'').localeCompare(a.vi_title||'', 'vi'));
+  if (s === 'ahead_desc')   arr.sort((a,b) => ((b.fanqie_chapters||0)-(b.uploaded_chapters||0))-((a.fanqie_chapters||0)-(a.uploaded_chapters||0)));
+  if (s === 'ahead_asc')    arr.sort((a,b) => ((a.fanqie_chapters||0)-(a.uploaded_chapters||0))-((b.fanqie_chapters||0)-(b.uploaded_chapters||0)));
+  if (s === 'fanqie_asc')   arr.sort((a,b) => (a.fanqie_chapters||0)-(b.fanqie_chapters||0));
+  if (s === 'fanqie_desc')  arr.sort((a,b) => (b.fanqie_chapters||0)-(a.fanqie_chapters||0));
+  if (s === 'uploaded_asc') arr.sort((a,b) => (a.uploaded_chapters||0)-(b.uploaded_chapters||0));
+  if (s === 'uploaded_desc') arr.sort((a,b) => (b.uploaded_chapters||0)-(a.uploaded_chapters||0));
+  if (s === 'status_asc')   arr.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+  if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
+  if (s === 'updated_asc')  arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
+  return arr;
+}
+
+// ── RENDER WAITING ──────────────────────────────────────────
 function renderWaiting() {
+  updateSortHeaders('waiting', WAITING_SORT_MAP, 'waiting-sort');
   const tbody = document.getElementById('waiting-tbody');
   const arr = sortedWaiting();
+  setSearchCount('waiting', arr.length, waitingList.length);
+
   let anyReady = false, anyUrgent = false;
   if (!arr.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">📋</div>No books in waiting list</div></td></tr>`;
+    const msg = searchWaiting
+      ? `No results for "<strong>${esc(searchWaiting)}</strong>"`
+      : 'No books in waiting list';
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">${searchWaiting?'🔍':'📋'}</div>${msg}</div></td></tr>`;
     updateBadges(); return;
   }
+
   tbody.innerHTML = arr.map(book => {
     const chReady = (book.current_chapters||0) >= (book.desired_chapters||0);
     if (chReady) anyReady = true;
@@ -739,11 +878,18 @@ function renderWaiting() {
       : `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${book.desired_chapters}</span>`;
     const chPct = Math.min(100, Math.round(((book.current_chapters||0)/(book.desired_chapters||1))*100));
     const fillCls = chPct>=100?'progress-fill':chPct>=70?'progress-fill warn':'progress-fill danger';
-    return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${book.fanqie_id}">
-      <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${book.fanqie_id}',this.checked)"></td>
+
+    const titleHtml = hl(book.vi_title||'', searchWaiting) || '<em style="color:var(--text3)">Chưa có tên</em>';
+    const idHtml = hl(book.fanqie_id||'', searchWaiting);
+    const titleLink = book.wiki_id
+      ? `<a href="https://wikicv.net/truyen/${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link">${titleHtml}</a>`
+      : titleHtml;
+
+    return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
+      <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${esc(book.fanqie_id)}',this.checked)"></td>
       <td class="title-cell">
-        <div class="title-main">${book.wiki_id?`<a href="https://wikicv.net/truyen/${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</a>`:(book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>')}</div>
-        <div class="title-id"><a href="https://fanqienovel.com/page/${book.fanqie_id}" target="_blank" class="link">${book.fanqie_id}</a></div>
+        <div class="title-main">${titleLink}</div>
+        <div class="title-id"><a href="https://fanqienovel.com/page/${esc(book.fanqie_id)}" target="_blank" class="link">${idHtml}</a></div>
       </td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
       <td class="mono">${book.desired_chapters}</td>
@@ -753,56 +899,52 @@ function renderWaiting() {
       <td>${readyTag}</td>
     </tr>`;
   }).join('');
+
   document.getElementById('waiting-ready-banner').style.display = anyReady ? 'flex' : 'none';
   document.getElementById('waiting-deadline-banner').style.display = anyUrgent ? 'flex' : 'none';
   updateSelectionUI(); updateBadges();
 }
 
-// ── RENDER UPLOADING (with inline update column) ─────────────
-function sortedUploading() {
-  let arr = [...uploadingList];
-  const s = document.getElementById('trans-sort')?.value || 'default';
-  if (s === 'ahead_desc') arr.sort((a,b)=>((b.fanqie_chapters||0)-(b.uploaded_chapters||0))-((a.fanqie_chapters||0)-(a.uploaded_chapters||0)));
-  if (s === 'ahead_asc')  arr.sort((a,b)=>((a.fanqie_chapters||0)-(a.uploaded_chapters||0))-((b.fanqie_chapters||0)-(b.uploaded_chapters||0)));
-  if (s === 'updated_desc') arr.sort((a,b)=>(b.last_updated||'').localeCompare(a.last_updated||''));
-  if (s === 'updated_asc')  arr.sort((a,b)=>(a.last_updated||'').localeCompare(b.last_updated||''));
-  return arr;
-}
-
+// ── RENDER UPLOADING ─────────────────────────────────────────
 function renderUploading() {
+  updateSortHeaders('uploading', TRANS_SORT_MAP, 'trans-sort');
   const tbody = document.getElementById('uploading-tbody');
   const arr = sortedUploading();
+  setSearchCount('uploading', arr.length, uploadingList.length);
+
   if (!arr.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="icon">✍️</div>No books in uploading list</div></td></tr>`;
+    const msg = searchUploading
+      ? `No results for "<strong>${esc(searchUploading)}</strong>"`
+      : 'No books in uploading list';
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="icon">${searchUploading?'🔍':'✍️'}</div>${msg}</div></td></tr>`;
     updateBadges(); return;
   }
+
   tbody.innerHTML = arr.map(book => {
     const wikiId = book.wiki_id ? book.wiki_id.replace(/~/g,'%7E') : null;
     const wikiLink = wikiId ? `<a href="https://wikicv.net/truyen/${wikiId}" target="_blank" class="link" title="Wiki">W</a>` : '<span style="color:var(--text3)">—</span>';
-    const fanqieLink = `<a href="https://fanqienovel.com/page/${book.fanqie_id}" target="_blank" class="link" title="Fanqie">F</a>`;
-    // Show pending value if exists, otherwise current
+    const fanqieLink = `<a href="https://fanqienovel.com/page/${esc(book.fanqie_id)}" target="_blank" class="link" title="Fanqie">F</a>`;
     const displayVal = pendingUpdates.has(book.fanqie_id) ? pendingUpdates.get(book.fanqie_id) : (book.uploaded_chapters||0);
     const isPending = pendingUpdates.has(book.fanqie_id);
-    const safeTitle = (book.vi_title||book.fanqie_id).replace(/"/g,'&quot;').replace(/</g,'&lt;');
-    return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${book.fanqie_id}">
-      <td class="check-col"><input type="checkbox" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${book.fanqie_id}',this.checked)"></td>
+    const safeTitle = esc(book.vi_title || book.fanqie_id);
+
+    const titleHtml = hl(book.vi_title||'', searchUploading) || '<em style="color:var(--text3)">Chưa có tên</em>';
+    const idHtml = hl(book.fanqie_id||'', searchUploading);
+
+    return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
+      <td class="check-col"><input type="checkbox" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${esc(book.fanqie_id)}',this.checked)"></td>
       <td class="title-cell">
-        <div class="title-main" title="${safeTitle}">${book.vi_title||'<em style=color:var(--text3)>Chưa có tên</em>'}</div>
-        <div class="title-id">wiki: ${book.wiki_id||'—'}</div>
+        <div class="title-main" title="${safeTitle}">${titleHtml}</div>
+        <div class="title-id">wiki: ${esc(book.wiki_id||'—')} · <span>${idHtml}</span></div>
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
       <td class="mono">${book.uploaded_chapters||0}</td>
       <td>
         <div class="inline-update-wrap">
-          <input
-            type="number"
-            class="inline-ch-input${isPending?' pending':''}"
-            data-fid="${book.fanqie_id}"
-            value="${displayVal}"
-            min="0"
+          <input type="number" class="inline-ch-input${isPending?' pending':''}"
+            data-fid="${esc(book.fanqie_id)}" value="${displayVal}" min="0"
             title="Update uploaded chapters for: ${safeTitle}"
-            oninput="onInlineInput('${book.fanqie_id}', this.value)"
-          />
+            oninput="onInlineInput('${esc(book.fanqie_id)}', this.value)" />
         </div>
       </td>
       <td>${aheadBadge(book.fanqie_chapters, book.uploaded_chapters)}</td>
@@ -822,11 +964,11 @@ function renderChanged() {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">✅</div>No alerts</div></td></tr>`;
     updateBadges(); return;
   }
-  tbody.innerHTML = arr.map(book => `<tr class="${selectedChanged.has(book.fanqie_id)?'selected':''}" data-id="${book.fanqie_id}">
-    <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${book.fanqie_id}',this.checked)"></td>
+  tbody.innerHTML = arr.map(book => `<tr class="${selectedChanged.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
+    <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${esc(book.fanqie_id)}',this.checked)"></td>
     <td class="title-cell">
-      <div class="title-main">${book.vi_title||'—'}</div>
-      <div class="title-id">${book.fanqie_id}</div>
+      <div class="title-main">${esc(book.vi_title||'—')}</div>
+      <div class="title-id">${esc(book.fanqie_id)}</div>
     </td>
     <td class="mono">${book.fanqie_chapters||'?'}</td>
     <td class="mono">${book.uploaded_chapters||0}</td>
@@ -993,22 +1135,6 @@ function bulkDelete(list) {
     }
     renderAll(); toast('Deleted.', 'success');
   });
-}
-
-// ── SORT ────────────────────────────────────────────────────
-function setSortWaiting(col) {
-  const sel = document.getElementById('waiting-sort');
-  if (col==='current_chapters') sel.value = sel.value==='chapters_asc'?'chapters_desc':'chapters_asc';
-  if (col==='last_updated') sel.value = sel.value==='updated_asc'?'updated_desc':'updated_asc';
-  if (col==='desired_date') sel.value = sel.value==='deadline_asc'?'deadline_desc':'deadline_asc';
-  renderWaiting();
-}
-
-function setSortTrans(col) {
-  const sel = document.getElementById('trans-sort');
-  if (col==='ahead') sel.value = sel.value==='ahead_asc'?'ahead_desc':'ahead_asc';
-  if (col==='last_updated') sel.value = sel.value==='updated_asc'?'updated_desc':'updated_asc';
-  renderUploading();
 }
 
 // ── MODAL ───────────────────────────────────────────────────
