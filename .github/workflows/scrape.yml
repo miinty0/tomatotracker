@@ -4,8 +4,7 @@ on:
   schedule:
     - cron: '0 6 * * *'
     - cron: '0 18 * * *'
-
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,16 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Install dependencies
-        run: pip install requests beautifulsoup4
+        run: pip install requests beautifulsoup4 --break-system-packages
 
       - name: Run scraper
-        run: python scripts/scraper.py
+        run: python3 scripts/scraper.py
 
       - name: Commit updated data
         run: |
