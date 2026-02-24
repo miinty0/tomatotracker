@@ -733,6 +733,7 @@ function fmtStatus(status) {
   if (!status) return '<span class="tag tag-blue">—</span>';
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
   if (status.includes('已完结') || status.includes('hoàn thành')) return '<span class="tag tag-orange">Hoàn thành</span>';
+  if (status.includes('已删除')) return '<span class="tag tag-red">Đã xóa</span>';
   return `<span class="tag tag-blue">${esc(status)}</span>`;
 }
 
