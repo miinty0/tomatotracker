@@ -7,20 +7,20 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d0f12;
-    --surface: #151820;
-    --surface2: #1c2130;
-    --border: #252d3d;
-    --border2: #2e3a50;
-    --accent: #4f9eff;
-    --accent2: #7c5cfc;
-    --green: #2dce7a;
-    --yellow: #f5c542;
-    --red: #ff5a5a;
-    --orange: #ff8c42;
-    --text: #cdd6f4;
-    --text2: #8899bb;
-    --text3: #556080;
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #edf0f5;
+    --border: #d0d7e3;
+    --border2: #b8c2d6;
+    --accent: #1a6fd4;
+    --accent2: #6040e0;
+    --green: #1a9e55;
+    --yellow: #c49a00;
+    --red: #d63030;
+    --orange: #c45f00;
+    --text: #1a2030;
+    --text2: #4a5568;
+    --text3: #8896aa;
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans', sans-serif;
   }
@@ -555,6 +555,7 @@ async function ghApi(path, options = {}) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || res.statusText);
   }
+  if (res.status === 204 || res.headers.get('content-length') === '0') return {};
   return res.json();
 }
 
