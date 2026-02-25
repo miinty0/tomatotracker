@@ -18,6 +18,10 @@ def scrape_fanqie(book_id: str) -> dict:
     result = {"current_chapters": None, "status": None, "last_updated": None}
     try:
         resp = SESSION.get(url, timeout=5)
+        if resp.status_code == 404:
+            print(f"  [fanqie] {book_id}: book removed/hidden (404)")
+            result["status"] = "已删除"
+            return result
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
 
