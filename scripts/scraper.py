@@ -3,6 +3,7 @@ import json, re, os, sys
 import requests
 from datetime import datetime
 from bs4 import BeautifulSoup
+import time
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -13,11 +14,35 @@ HEADERS = {
 SESSION = requests.Session()
 SESSION.headers.update(HEADERS)
 
-def scrape_fanqie(book_id: str) -> dict:
+RETRY_FILE = "retry_list.json"
+MAX_RETRIES = 3
+RETRY_DELAYS = [5, 10, 20] 
+
+
+def fetch_with_retry(url: str, book_id: str) -> requests.Response | None:
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = SESSION.get(url, timeout=15)
+            return resp
+        except Exception as e:
+            wait = RETRY_DELAYS[attempt]
+            print(f"  [fetch] attempt {attempt+1}/{MAX_RETRIES} failed for {book_id}: {e}", file=sys.stderr)
+            if attempt < MAX_RETRIES - 1:
+                print(f"  [fetch] retrying in {wait}s...", file=sys.stderr)
+                time.sleep(wait)
+    return None  
+
+
+def scrape_fanqie(book_id: str) -> dict | None:
     url = f"https://fanqienovel.com/page/{book_id}"
     result = {"current_chapters": None, "status": None, "last_updated": None}
+
+    resp = fetch_with_retry(url, book_id)
+    if resp is None:
+        print(f"  [fanqie] SKIP {book_id}: all retries failed, will retry next run", file=sys.stderr)
+        return None  
+
     try:
-        resp = SESSION.get(url, timeout=5)
         if resp.status_code == 404:
             print(f"  [fanqie] {book_id}: book removed/hidden (404)")
             result["status"] = "已删除"
@@ -63,8 +88,13 @@ def scrape_wiki(wiki_id: str) -> dict:
     encoded_id = wiki_id.replace("~", "%7E")
     url = f"https://wikicv.net/truyen/{encoded_id}"
     result = {"vi_title": None}
+
+    resp = fetch_with_retry(url, wiki_id)
+    if resp is None:
+        print(f"  [wiki] SKIP {wiki_id}: all retries failed", file=sys.stderr)
+        return result
+
     try:
-        resp = SESSION.get(url, timeout=5)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         cover_info = soup.find("div", class_="cover-info")
@@ -94,29 +124,54 @@ def main():
     waiting = load_json("waiting_list.json")
     uploading = load_json("uploading_list.json")
 
+    # Load retry list from previous run
+    retry_ids = set(load_json(RETRY_FILE))
+    if retry_ids:
+        print(f"\n[Retry Queue] {len(retry_ids)} books from previous failed run: {retry_ids}")
+
+    failed_ids = []  
+
     print(f"\n[Waiting List] {len(waiting)} books")
     for book in waiting:
-        fq = scrape_fanqie(book["fanqie_id"])
-        book.update(fq)
-        import time; time.sleep(1.5)
+        bid = book["fanqie_id"]
+        fq = scrape_fanqie(bid)
+        if fq is None:
+            failed_ids.append(bid)  
+        else:
+            book.update(fq)
+            if bid in retry_ids:
+                retry_ids.discard(bid)  
+        time.sleep(1.5)
 
     save_json("waiting_list.json", waiting)
     print(f"  Saved waiting_list.json")
 
     print(f"\n[Uploading List] {len(uploading)} books")
     for book in uploading:
-        fq = scrape_fanqie(book["fanqie_id"])
-        book.update({k: v for k, v in fq.items() if k != "current_chapters"})
-        book["fanqie_chapters"] = fq.get("current_chapters")
-        import time; time.sleep(1.5)
+        bid = book["fanqie_id"]
+        fq = scrape_fanqie(bid)
+        if fq is None:
+            failed_ids.append(bid)  
+        else:
+            book.update({k: v for k, v in fq.items() if k != "current_chapters"})
+            book["fanqie_chapters"] = fq.get("current_chapters")
+            if bid in retry_ids:
+                retry_ids.discard(bid)
+        time.sleep(1.5)
 
-        if book.get("wiki_id") and not book.get("vi_title"):
+        if fq is not None and book.get("wiki_id") and not book.get("vi_title"):
             wiki = scrape_wiki(book["wiki_id"])
             book.update(wiki)
-            import time; time.sleep(1.0)
+            time.sleep(1.0)
 
     save_json("uploading_list.json", uploading)
     print(f"  Saved uploading_list.json")
+
+    # Save failed books for next run
+    if failed_ids:
+        print(f"\n[Retry Queue] {len(failed_ids)} books failed, saving for next run: {failed_ids}")
+    save_json(RETRY_FILE, failed_ids)
+
     print(f"\n=== Done ===")
 
 if __name__ == "__main__":
