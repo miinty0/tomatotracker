@@ -630,9 +630,9 @@ async function triggerScraper() {
     await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
       method: 'POST', body: JSON.stringify({ ref: 'main' })
     });
-    toast('Scraper triggered! Auto-refreshing in ~75s.', 'success');
+    toast('Scraper triggered! Auto-refreshing in ~10min.', 'success');
     btn.innerHTML = '⏳ Running…';
-    setTimeout(async () => { await loadData(); btn.disabled = false; btn.innerHTML = '▶ Run Scraper'; }, 75000);
+    setTimeout(async () => { await loadData(); btn.disabled = false; btn.innerHTML = '▶ Run Scraper'; }, 600000);
   } catch(e) {
     toast('Failed to trigger: ' + e.message, 'error');
     btn.disabled = false; btn.innerHTML = '▶ Run Scraper';
