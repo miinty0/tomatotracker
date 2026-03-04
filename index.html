@@ -45,9 +45,11 @@
   .btn.ghost { border-color: var(--border); color: var(--text3); }
   .btn.ghost:hover { border-color: var(--text2); color: var(--text2); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
   main { padding: 12px 16px; }
   .section { display: none; }
   .section.active { display: block; }
+
   .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 0; flex-wrap: wrap; position: sticky; top: 44px; z-index: 50; background: var(--bg); padding: 8px 0; border-bottom: 1px solid var(--border); }
   .toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
   .toolbar-right { display: flex; align-items: center; gap: 6px; }
@@ -59,7 +61,8 @@
   }
   select:focus, input:focus { border-color: var(--accent); }
   select { cursor: pointer; }
-  /*  SEARCH  */
+
+  /* ── SEARCH ── */
   .search-wrap { position: relative; display: inline-flex; align-items: center; }
   .search-icon { position: absolute; left: 8px; color: var(--text3); font-size: 13px; pointer-events: none; line-height: 1; }
   .search-input {
@@ -80,6 +83,7 @@
   .search-result-count { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; display: none; }
   .search-result-count.active { display: inline; color: var(--accent); }
   mark.hl { background: rgba(79,158,255,0.22); color: var(--accent); border-radius: 2px; font-style: normal; }
+
   .add-panel { background: var(--bg); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; margin-bottom: 0; display: none; position: sticky; top: var(--toolbar-bottom, 88px); z-index: 49; padding: 12px; }
   .add-panel.open { display: block; }
   .add-panel h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: var(--mono); }
@@ -87,6 +91,7 @@
   .add-panel textarea:focus { border-color: var(--accent); }
   .add-panel .hint { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
   .add-panel .actions { display: flex; gap: 6px; margin-top: 8px; }
+
   .table-wrap { overflow-x: visible; }
   body { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; }
@@ -107,6 +112,7 @@
   .mono { font-family: var(--mono); font-size: 11px; }
   .link { color: var(--accent); text-decoration: none; }
   .link:hover { text-decoration: underline; }
+
   .tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
   .tag-green { background: rgba(45,206,122,0.12); color: var(--green); border: 1px solid rgba(45,206,122,0.25); }
   .tag-yellow { background: rgba(245,197,66,0.12); color: var(--yellow); border: 1px solid rgba(245,197,66,0.25); }
@@ -114,22 +120,27 @@
   .tag-blue { background: rgba(79,158,255,0.12); color: var(--accent); border: 1px solid rgba(79,158,255,0.25); }
   .tag-orange { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
   .tag-purple { background: rgba(124,92,252,0.12); color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
+
   .deadline-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
   .deadline-ok { background: rgba(45,206,122,0.10); color: var(--green); border: 1px solid rgba(45,206,122,0.2); }
   .deadline-soon { background: rgba(245,197,66,0.10); color: var(--yellow); border: 1px solid rgba(245,197,66,0.2); }
   .deadline-urgent { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
   .deadline-overdue { background: rgba(255,90,90,0.12); color: var(--red); border: 1px solid rgba(255,90,90,0.25); }
   .deadline-none { color: var(--text3); font-family: var(--mono); font-size: 11px; }
+
   .warn-tags { display: flex; gap: 3px; flex-wrap: wrap; }
+
   .progress-wrap { display: flex; align-items: center; gap: 6px; }
   .progress-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
   .progress-fill.warn { background: var(--orange); }
   .progress-fill.danger { background: var(--red); }
+
   .ahead { font-family: var(--mono); font-size: 11px; font-weight: 600; }
   .ahead.ok { color: var(--green); }
   .ahead.warn { color: var(--yellow); }
   .ahead.danger { color: var(--red); }
+
   .inline-update-wrap { display: flex; align-items: center; gap: 5px; }
   .inline-ch-input {
     width: 68px; padding: 3px 7px; background: var(--bg); border: 1px solid var(--border2);
@@ -138,6 +149,7 @@
   }
   .inline-ch-input:focus { border-color: var(--accent); }
   .inline-ch-input.pending { border-color: var(--yellow); background: rgba(245,197,66,0.06); color: var(--yellow); }
+
   #inline-save-bar {
     position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
     border-top: 2px solid var(--yellow); padding: 10px 16px; display: none; z-index: 200;
@@ -148,24 +160,29 @@
   #inline-save-bar .inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   #inline-save-bar .hint { font-size: 11px; color: var(--yellow); font-family: var(--mono); }
   #inline-save-bar .hint strong { color: var(--text); }
+
   #move-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border2); padding: 10px 16px; display: none; z-index: 200; box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
   #move-panel.open { display: block; }
   #move-panel .inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #move-panel label { font-size: 12px; color: var(--text2); font-weight: 500; }
   #move-panel textarea { width: 300px; min-height: 60px; font-family: var(--mono); font-size: 11px; }
   #move-panel .hint { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
   .empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 12px; }
   .empty .icon { font-size: 28px; margin-bottom: 8px; }
+
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: none; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 20px; min-width: 340px; max-width: 500px; }
   .modal h3 { font-size: 14px; margin-bottom: 12px; }
   .modal p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
   .filter-pills { display: flex; gap: 4px; }
   .pill { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); font-size: 11px; color: var(--text2); cursor: pointer; font-weight: 500; transition: all 0.15s; }
   .pill:hover { border-color: var(--accent); color: var(--accent); }
   .pill.active { background: rgba(79,158,255,0.1); border-color: var(--accent); color: var(--accent); }
+
   .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -189,7 +206,7 @@
 <body>
 
 <header>
-  <div class="logo">fanqie<span>/</span>tracker</div>
+  <div class="logo">tomato<span>/</span>tracker</div>
   <div class="tab-bar">
     <div class="tab active" onclick="switchTab('waiting')">⏳ Waiting <span id="waiting-count-badge" class="tag tag-blue" style="margin-left:4px;font-size:9px;"></span></div>
     <div class="tab" onclick="switchTab('uploading')">✍️ Uploading <span id="trans-count-badge" class="tag tag-green" style="margin-left:4px;font-size:9px;"></span></div>
@@ -226,17 +243,17 @@
   <div id="token-setup">
     <h4>URL Configuration</h4>
     <div class="config-row">
-      <label>💙 base URL</label>
+      <label>Wiki base URL</label>
       <input id="cfg-wiki-url" type="text" placeholder="https://example.com/truyen/" />
     </div>
     <div class="config-row">
-      <label>🍅 base URL</label>
+      <label>Fanqie base URL</label>
       <input id="cfg-fanqie-url" type="text" placeholder="https://example.com/page/" />
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;">
       <button class="btn primary" onclick="saveConfig()">Save Config</button>
     </div>
-    <div class="note">Base URLs for 💙/🍅 links. Trailing slash required.</div>
+    <div class="note">Base URLs for wiki and source links. Trailing slash required.</div>
   </div>
 </div>
 
@@ -459,7 +476,7 @@
 <div id="toast"></div>
 
 <script>
-//  CONFIG & STATE 
+// ── CONFIG & STATE ──────────────────────────────────────────
 let CFG = { repo: '', token: '', wiki_url: '', fanqie_url: '' };
 let waitingList = [];
 let uploadingList = [];
@@ -477,7 +494,7 @@ let searchUploading = '';
 let sortStateWaiting = { col: null, dir: 'asc' };
 let sortStateTrans   = { col: null, dir: 'asc' };
 
-//  SORT MAPS ─
+// ── SORT MAPS ───────────────────────────────────────────────
 // col key → [asc select value, desc select value]
 const WAITING_SORT_MAP = {
   title:            ['title_asc',    'title_desc'],
@@ -546,7 +563,7 @@ function updateSortHeaders(table, sortMap, selectId) {
   });
 }
 
-//  CONFIG 
+// ── CONFIG ──────────────────────────────────────────────────
 function saveConfig() {
   CFG.repo = document.getElementById('cfg-repo').value.trim();
   CFG.token = document.getElementById('cfg-token').value.trim();
@@ -580,7 +597,7 @@ async function testConfig() {
   } catch(e) { toast('Connection failed: ' + e.message, 'error'); }
 }
 
-//  GITHUB API 
+// ── GITHUB API ──────────────────────────────────────────────
 async function ghApi(path, options = {}) {
   const res = await fetch(`https://api.github.com${path}`, {
     ...options,
@@ -629,7 +646,7 @@ async function putFile(filename, content, sha) {
   return ghApi(`/repos/${CFG.repo}/contents/${filename}`, { method: 'PUT', body: JSON.stringify(body) });
 }
 
-//  LOAD DATA ─
+// ── LOAD DATA ───────────────────────────────────────────────
 async function loadData() {
   if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
   document.getElementById('refresh-icon').className = 'spinner';
@@ -660,7 +677,7 @@ async function saveUploading() {
   await putFile('uploading_list.json', uploadingList, sha);
 }
 
-//  SCRAPER ─
+// ── SCRAPER ─────────────────────────────────────────────────
 async function triggerScraper() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const btn = document.getElementById('scrape-btn');
@@ -679,7 +696,7 @@ async function triggerScraper() {
   }
 }
 
-//  TABS 
+// ── TABS ────────────────────────────────────────────────────
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t, i) => {
     t.classList.toggle('active', ['waiting','uploading','changed','settings'][i] === tab);
@@ -704,7 +721,7 @@ function updateTheadTop() {
   document.documentElement.style.setProperty('--thead-top', (toolbarBottom + addPanelH + bannersH) + 'px');
 }
 
-//  DATE HELPERS 
+// ── DATE HELPERS ────────────────────────────────────────────
 function parseDesiredDate(str) {
   if (!str) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
@@ -740,7 +757,7 @@ function fmtDeadline(dateStr) {
   return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
 }
 
-//  SEARCH HELPERS 
+// ── SEARCH HELPERS ──────────────────────────────────────────
 function esc(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -785,7 +802,7 @@ function setSearchCount(list, shown, total) {
   el.textContent = `${shown} / ${total} match`;
 }
 
-//  RENDER HELPERS 
+// ── RENDER HELPERS ──────────────────────────────────────────
 function fmtStatus(status) {
   if (!status) return '<span class="tag tag-blue">—</span>';
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
@@ -819,7 +836,7 @@ function getWarnTags(book) {
   const tags = [];
   const status = (book.status||'').toLowerCase();
   if (status.includes('已完结') || status.includes('hoàn thành'))
-    tags.push('<span class="tag tag-orange">Hoàn thành</span>');
+    tags.push('<span class="tag tag-orange">✅ Hoàn thành</span>');
   const isCompleted = status.includes('已完结') || status.includes('hoàn thành');
   if (!isCompleted && daysSince(book.last_updated) >= 15)
     tags.push('<span class="tag tag-red">🕐 Stale '+daysSince(book.last_updated)+'d</span>');
@@ -840,7 +857,7 @@ function matchChangedFilter(book) {
   return true;
 }
 
-//  INLINE UPDATES 
+// ── INLINE UPDATES ──────────────────────────────────────────
 function onInlineInput(fanqieId, rawVal) {
   const book = uploadingList.find(b => b.fanqie_id === fanqieId);
   if (!book) return;
@@ -879,7 +896,7 @@ function discardInlineUpdates() {
   renderUploading();
 }
 
-//  SORTED/FILTERED ARRAYS ─
+// ── SORTED/FILTERED ARRAYS ───────────────────────────────────
 function sortedWaiting() {
   let arr = [...waitingList].filter(b => bookMatchesSearch(b, searchWaiting));
   const s = document.getElementById('waiting-sort')?.value || 'default';
@@ -913,7 +930,7 @@ function sortedUploading() {
   return arr;
 }
 
-//  RENDER WAITING 
+// ── RENDER WAITING ──────────────────────────────────────────
 function renderWaiting() {
   updateSortHeaders('waiting', WAITING_SORT_MAP, 'waiting-sort');
   const tbody = document.getElementById('waiting-tbody');
@@ -967,7 +984,7 @@ function renderWaiting() {
   updateSelectionUI(); updateBadges();
 }
 
-//  RENDER UPLOADING ─
+// ── RENDER UPLOADING ─────────────────────────────────────────
 function renderUploading() {
   updateSortHeaders('uploading', TRANS_SORT_MAP, 'trans-sort');
   const tbody = document.getElementById('uploading-tbody');
@@ -996,7 +1013,7 @@ function renderUploading() {
       <td class="check-col"><input type="checkbox" tabindex="-1" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('uploading','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
       <td class="title-cell">
         <div class="title-main" title="${safeTitle}">${titleHtml}</div>
-        <div class="title-id">${wikiId ? <a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a> · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${idHtml}</a></div>
+        <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${idHtml}</a></div>
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
       <td class="mono">${book.uploaded_chapters||0}</td>
@@ -1016,7 +1033,7 @@ function renderUploading() {
   updateSelectionUI(); updateBadges();
 }
 
-//  RENDER CHANGED 
+// ── RENDER CHANGED ──────────────────────────────────────────
 function sortedChanged() {
   let arr = uploadingList.filter(b => isChangedBook(b) && matchChangedFilter(b));
   const s = document.getElementById('changed-sort')?.value || 'default';
@@ -1046,7 +1063,7 @@ function renderChanged() {
     <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('changed','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
     <td class="title-cell">
       <div class="title-main">${esc(book.vi_title||'—')}</div>
-      <div class="title-id">${book.wiki_id ? <a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a> · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${esc(book.fanqie_id)}</a></div>
+      <div class="title-id">${book.wiki_id ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${esc(book.fanqie_id)}</a></div>
     </td>
     <td class="mono">${book.fanqie_chapters||'?'}</td>
     <td class="mono">${book.uploaded_chapters||0}</td>
@@ -1072,7 +1089,7 @@ function updateBadges() {
   document.getElementById('changed-count-badge').textContent = uploadingList.filter(isChangedBook).length||'';
 }
 
-//  SELECTION ─
+// ── SELECTION ───────────────────────────────────────────────
 let lastClickedId = { waiting: null, uploading: null, changed: null };
 
 function toggleSelect(list, id, checked, event) {
@@ -1140,7 +1157,7 @@ function updateSelectionUI() {
   document.getElementById('changed-del-btn').style.display = cc ? 'inline-flex' : 'none';
 }
 
-//  ADD PANELS 
+// ── ADD PANELS ──────────────────────────────────────────────
 function toggleAddPanel(list) {
   document.getElementById(`add-panel-${list}`).classList.toggle('open');
   requestAnimationFrame(updateTheadTop);
@@ -1187,7 +1204,7 @@ async function submitAdd(list) {
   }
 }
 
-//  MOVE TO UPLOADING ─
+// ── MOVE TO UPLOADING ───────────────────────────────────────
 function openMovePanel() {
   if (!selectedWaiting.size) return;
   const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
@@ -1216,7 +1233,7 @@ async function submitMove() {
   toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
 }
 
-//  DELETE 
+// ── DELETE ──────────────────────────────────────────────────
 function bulkDelete(list) {
   const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
   if (!set.size) return;
@@ -1232,7 +1249,7 @@ function bulkDelete(list) {
   });
 }
 
-//  MODAL ─
+// ── MODAL ───────────────────────────────────────────────────
 let _modalCallback = null;
 function showModal(title, body, onConfirm) {
   document.getElementById('modal-title').textContent = title;
@@ -1243,7 +1260,7 @@ function showModal(title, body, onConfirm) {
 function closeModal() { document.getElementById('confirm-modal').classList.remove('open'); }
 document.getElementById('modal-confirm-btn').onclick = async () => { closeModal(); if (_modalCallback) await _modalCallback(); };
 
-//  TOAST ─
+// ── TOAST ───────────────────────────────────────────────────
 let _toastTimer;
 function toast(msg, type='') {
   const el = document.getElementById('toast');
@@ -1253,7 +1270,7 @@ function toast(msg, type='') {
   _toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
 }
 
-//  INIT 
+// ── INIT ────────────────────────────────────────────────────
 loadConfig();
 if (CFG.repo && CFG.token) loadData(); else switchTab('settings');
 </script>
