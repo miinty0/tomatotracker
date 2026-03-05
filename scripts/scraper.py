@@ -41,6 +41,9 @@ def scrape_fanqie(book_id: str) -> dict | None:
     if resp is None:
         print(f"  [fanqie] SKIP {book_id}: all retries failed, will retry next run", file=sys.stderr)
         return None  
+    has_state = '__INITIAL_STATE__' in resp.text
+    book_id_in_state = re.search(r'"bookId"\s*:\s*"(\d*)"', resp.text)
+    print(f"  [debug] {book_id}: http={resp.status_code} size={len(resp.text)} has_state={has_state} bookId_found={bool(book_id_in_state)} bookId_val={repr(book_id_in_state.group(1)) if book_id_in_state else 'N/A'}", file=sys.stderr)
 
     try:
         if resp.status_code == 404:
