@@ -40,10 +40,7 @@ def scrape_fanqie(book_id: str) -> dict | None:
     resp = fetch_with_retry(url, book_id)
     if resp is None:
         print(f"  [fanqie] SKIP {book_id}: all retries failed, will retry next run", file=sys.stderr)
-        return None  
-    has_state = '__INITIAL_STATE__' in resp.text
-    book_id_in_state = re.search(r'"bookId"\s*:\s*"(\d*)"', resp.text)
-    print(f"  [debug] {book_id}: http={resp.status_code} size={len(resp.text)} has_state={has_state} bookId_found={bool(book_id_in_state)} bookId_val={repr(book_id_in_state.group(1)) if book_id_in_state else 'N/A'}", file=sys.stderr)
+        return None
 
     try:
         if resp.status_code == 404:
@@ -51,35 +48,73 @@ def scrape_fanqie(book_id: str) -> dict | None:
             result["status"] = "已删除"
             return result
         resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
 
-        # Detect status
-        title = soup.find("title")
-        if title and title.get_text(strip=True).startswith("小说,番茄小说网"):
-            print(f"  [fanqie] {book_id}: removed")
-            result["status"] = "已删除"
-            return result
+        # ── Primary: extract from __INITIAL_STATE__ JSON embedded in page ──
+        # Use field-level regex — more robust than parsing the full JSON blob
+        raw = resp.text
 
-        label_div = soup.find("div", class_="info-label")
-        if label_div:
-            span = label_div.find("span")
-            if span:
-                status_text = span.get_text(strip=True)
-                result["status"] = "连载中" if "连载中" in status_text else "已完结" if "已完结" in status_text else status_text
+        book_id_val = re.search(r'"bookId"\s*:\s*"(\d*)"', raw)
+        book_name_val = re.search(r'"bookName"\s*:\s*"([^"]*)"', raw)
 
-        last_div = soup.find("div", class_="info-last")
-        if last_div:
-            time_span = last_div.find("span", class_="info-last-time")
-            if time_span:
-                result["last_updated"] = time_span.get_text(strip=True)
+        if book_id_val is not None:
+            # INITIAL_STATE is present — check if book is removed/hidden
+            if not book_id_val.group(1) or not (book_name_val and book_name_val.group(1)):
+                print(f"  [fanqie] {book_id}: removed (empty page state)")
+                result["status"] = "已删除"
+                return result
 
-        dir_header = soup.find("div", class_="page-directory-header")
-        if dir_header:
-            h3 = dir_header.find("h3")
-            if h3:
-                match = re.search(r"(\d+)章", h3.get_text())
-                if match:
-                    result["current_chapters"] = int(match.group(1))
+            # status: 0 = 连载中, 1 = 已完结
+            s_match = re.search(r'"page".*?"status"\s*:\s*(\d+)', raw, re.DOTALL)
+            if s_match:
+                s = int(s_match.group(1))
+                result["status"] = "已完结" if s == 1 else "连载中" if s == 0 else None
+
+            # last_updated from lastPublishTime (unix timestamp)
+            ts_match = re.search(r'"lastPublishTime"\s*:\s*"(\d+)"', raw)
+            if ts_match:
+                from datetime import datetime, timezone
+                result["last_updated"] = datetime.fromtimestamp(int(ts_match.group(1)), tz=timezone.utc).strftime("%Y-%m-%d %H:%M")
+
+            # chapter count
+            ct_match = re.search(r'"chapterTotal"\s*:\s*(\d+)', raw)
+            if ct_match:
+                result["current_chapters"] = int(ct_match.group(1))
+
+        # ── Fallback: parse HTML if JSON missing any field ──
+        if any(v is None for v in result.values()):
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Detect removed via title tag
+            title = soup.find("title")
+            if title and title.get_text(strip=True).startswith("小说,番茄小说网"):
+                print(f"  [fanqie] {book_id}: removed (title redirect)")
+                result["status"] = "已删除"
+                return result
+
+            if result["status"] is None:
+                label_div = soup.find("div", class_="info-label")
+                if label_div:
+                    text = label_div.get_text(separator=" ", strip=True)
+                    if "连载中" in text:
+                        result["status"] = "连载中"
+                    elif "已完结" in text:
+                        result["status"] = "已完结"
+
+            if result["last_updated"] is None:
+                last_div = soup.find("div", class_="info-last")
+                if last_div:
+                    time_span = last_div.find("span", class_="info-last-time")
+                    if time_span:
+                        result["last_updated"] = time_span.get_text(strip=True)
+
+            if result["current_chapters"] is None:
+                dir_header = soup.find("div", class_="page-directory-header")
+                if dir_header:
+                    h3 = dir_header.find("h3")
+                    if h3:
+                        match = re.search(r"(\d+)\s*章", h3.get_text(strip=True))
+                        if match:
+                            result["current_chapters"] = int(match.group(1))
 
         print(f"  [fanqie] {book_id}: {result['current_chapters']}章, {result['status']}, {result['last_updated']}")
     except Exception as e:
@@ -123,7 +158,13 @@ def save_json(path, data):
 
 
 def main():
-    print(f"=== Fanqie Tracker Scraper — {datetime.now().isoformat()} ===")
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', choices=['auto', 'completed'], default='auto',
+                        help='auto: scrape ongoing+deleted only; completed: scrape completed only')
+    args = parser.parse_args()
+
+    print(f"=== Fanqie Tracker Scraper [{args.mode}] — {datetime.now().isoformat()} ===")
     waiting = load_json("waiting_list.json")
     uploading = load_json("uploading_list.json")
 
@@ -132,10 +173,20 @@ def main():
     if retry_ids:
         print(f"\n[Retry Queue] {len(retry_ids)} books from previous failed run: {retry_ids}")
 
-    failed_ids = []  
+    failed_ids = []
+
+    # Filter books based on mode
+    def should_scrape(book):
+        s = (book.get("status") or "").strip()
+        if args.mode == "completed":
+            return s == "已完结"
+        else:  # auto
+            return s != "已完结"
 
     print(f"\n[Waiting List] {len(waiting)} books")
     for book in waiting:
+        if not should_scrape(book):
+            continue
         bid = book["fanqie_id"]
         fq = scrape_fanqie(bid)
         if fq is None:
@@ -151,6 +202,8 @@ def main():
 
     print(f"\n[Uploading List] {len(uploading)} books")
     for book in uploading:
+        if not should_scrape(book):
+            continue
         bid = book["fanqie_id"]
         fq = scrape_fanqie(bid)
         if fq is None:
