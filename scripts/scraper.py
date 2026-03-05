@@ -63,11 +63,11 @@ def scrape_fanqie(book_id: str) -> dict | None:
                 result["status"] = "已删除"
                 return result
 
-            # status: 0 = 连载中, 1 = 已完结
-            s_match = re.search(r'"page".*?"status"\s*:\s*(\d+)', raw, re.DOTALL)
+            # creationStatus: 0 = 已完结, 1 = 连载中
+            s_match = re.search(r'"creationStatus"\s*:\s*(\d+)', raw)
             if s_match:
                 s = int(s_match.group(1))
-                result["status"] = "已完结" if s == 1 else "连载中" if s == 0 else None
+                result["status"] = "连载中" if s == 1 else "已完结" if s == 0 else None
 
             # last_updated from lastPublishTime (unix timestamp)
             ts_match = re.search(r'"lastPublishTime"\s*:\s*"(\d+)"', raw)
