@@ -206,7 +206,7 @@
 <body>
 
 <header>
-  <div class="logo">tomato<span>/</span>tracker</div>
+  <div class="logo">🍅<span>/</span>tracker</div>
   <div class="tab-bar">
     <div class="tab active" onclick="switchTab('waiting')">⏳ Waiting <span id="waiting-count-badge" class="tag tag-blue" style="margin-left:4px;font-size:9px;"></span></div>
     <div class="tab" onclick="switchTab('uploading')">✍️ Uploading <span id="trans-count-badge" class="tag tag-green" style="margin-left:4px;font-size:9px;"></span></div>
@@ -215,7 +215,7 @@
   </div>
   <div class="header-right">
     <span class="sync-info" id="sync-info">—</span>
-    <button class="btn" id="scrape-btn" onclick="triggerScraper()">▶ Run Scraper</button>
+    <button class="btn" id="scrape-btn-auto" onclick="triggerScraper('auto')">▶ Ongoing</button><button class="btn" id="scrape-btn-completed" onclick="triggerScraper('completed')">▶ Completed</button>
     <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span> Refresh</button>
   </div>
 </header>
@@ -243,17 +243,17 @@
   <div id="token-setup">
     <h4>URL Configuration</h4>
     <div class="config-row">
-      <label>Wiki base URL</label>
+      <label>💙 base URL</label>
       <input id="cfg-wiki-url" type="text" placeholder="https://example.com/truyen/" />
     </div>
     <div class="config-row">
-      <label>Fanqie base URL</label>
+      <label>🍅 base URL</label>
       <input id="cfg-fanqie-url" type="text" placeholder="https://example.com/page/" />
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;">
       <button class="btn primary" onclick="saveConfig()">Save Config</button>
     </div>
-    <div class="note">Base URLs for wiki and source links. Trailing slash required.</div>
+    <div class="note">Base URLs for links. Trailing slash required.</div>
   </div>
 </div>
 
@@ -294,8 +294,8 @@
   </div>
   <div class="add-panel" id="add-panel-waiting">
     <h4>Add to Waiting List — Bulk</h4>
-    <textarea id="waiting-input" placeholder="Tên tiếng Việt | số chương mong muốn | fanqieID | ngày mong muốn (DD/MM/YYYY, tùy chọn)&#10;Ví dụ:&#10;Xuyên thành nông gia | 300 | 7506507753850948633 | 28/02/2026"></textarea>
-    <div class="hint">Format: Vietnamese Title | Desired Chapters | Fanqie Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
+    <textarea id="waiting-input" placeholder="Tên tiếng Việt | số chương mong muốn | 🍅 Book ID | ngày mong muốn (DD/MM/YYYY, tùy chọn)&#10;Ví dụ:&#10;Xuyên thành nông gia | 300 | 7506507753850948633 | 28/02/2026"></textarea>
+    <div class="hint">Format: Vietnamese Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
     <div class="actions">
       <button class="btn primary" onclick="submitAdd('waiting')">Add Books</button>
       <button class="btn" onclick="toggleAddPanel('waiting')">Cancel</button>
@@ -351,8 +351,8 @@
         <option value="title_desc">Title Z→A</option>
         <option value="ahead_desc">Most Unuploaded</option>
         <option value="ahead_asc">Least Unuploaded</option>
-        <option value="fanqie_asc">Fanqie Ch. ↑</option>
-        <option value="fanqie_desc">Fanqie Ch. ↓</option>
+        <option value="fanqie_asc">🍅 Ch. ↑</option>
+        <option value="fanqie_desc">🍅 Ch. ↓</option>
         <option value="uploaded_asc">Uploaded Ch. ↑</option>
         <option value="uploaded_desc">Uploaded Ch. ↓</option>
         <option value="status_asc">Status A→Z</option>
@@ -363,8 +363,8 @@
   </div>
   <div class="add-panel" id="add-panel-uploading">
     <h4>Add Directly to Uploading List — Bulk</h4>
-    <textarea id="uploading-input" placeholder="wikiID | uploaded chapters | fanqieID&#10;Ví dụ:&#10;aTwMd0bIjhne~Hxh | 45 | 7506507753850948633"></textarea>
-    <div class="hint">Format: Wiki Book ID | Uploaded Chapters | Fanqie Book ID (one per line)</div>
+    <textarea id="uploading-input" placeholder="💙 Book ID | uploaded chapters | 🍅 Book ID&#10;Ví dụ:&#10;aTwMd0bIjhne~Hxh | 45 | 7506507753850948633"></textarea>
+    <div class="hint">Format: 💙 Book ID | Uploaded Chapters | 🍅 Book ID (one per line)</div>
     <div class="actions">
       <button class="btn primary" onclick="submitAdd('uploading')">Add Books</button>
       <button class="btn" onclick="toggleAddPanel('uploading')">Cancel</button>
@@ -376,7 +376,7 @@
         <tr>
           <th class="check-col"><input type="checkbox" id="trans-check-all" onchange="toggleCheckAll('uploading', this.checked)"></th>
           <th id="uth-title" onclick="setSortTrans('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
-          <th id="uth-fanqie" onclick="setSortTrans('fanqie_chapters')">Fanqie Ch. <span class="sort-icon">↕</span></th>
+          <th id="uth-fanqie" onclick="setSortTrans('fanqie_chapters')">🍅 Ch. <span class="sort-icon">↕</span></th>
           <th id="uth-uploaded" onclick="setSortTrans('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
           <th>Set Uploaded ✏️</th>
           <th id="uth-ahead" onclick="setSortTrans('ahead')">Ahead <span class="sort-icon">↕</span></th>
@@ -411,8 +411,8 @@
         <option value="title_desc">Title Z→A</option>
         <option value="ahead_desc">Most Unuploaded</option>
         <option value="ahead_asc">Least Unuploaded</option>
-        <option value="fanqie_asc">Fanqie Ch. ↑</option>
-        <option value="fanqie_desc">Fanqie Ch. ↓</option>
+        <option value="fanqie_asc">🍅 Ch. ↑</option>
+        <option value="fanqie_desc">🍅 Ch. ↓</option>
         <option value="uploaded_asc">Uploaded Ch. ↑</option>
         <option value="uploaded_desc">Uploaded Ch. ↓</option>
         <option value="status_asc">Status A→Z</option>
@@ -427,7 +427,7 @@
         <tr>
           <th class="check-col"><input type="checkbox" id="changed-check-all" onchange="toggleCheckAll('changed', this.checked)"></th>
           <th id="cth-title" onclick="setSortChanged('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
-          <th id="cth-fanqie" onclick="setSortChanged('fanqie_chapters')">Fanqie Ch. <span class="sort-icon">↕</span></th>
+          <th id="cth-fanqie" onclick="setSortChanged('fanqie_chapters')">🍅 Ch. <span class="sort-icon">↕</span></th>
           <th id="cth-uploaded" onclick="setSortChanged('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
           <th id="cth-ahead" onclick="setSortChanged('ahead')">Ahead <span class="sort-icon">↕</span></th>
           <th id="cth-status" onclick="setSortChanged('status')">Status <span class="sort-icon">↕</span></th>
@@ -452,9 +452,9 @@
 
 <div id="move-panel">
   <div class="inner">
-    <label>Moving <strong id="move-count">0</strong> book(s) → Uploading. Add Wiki IDs (optional):</label>
+    <label>Moving <strong id="move-count">0</strong> book(s) → Uploading. Add 💙 Book IDs (optional):</label>
     <div>
-      <textarea id="move-wiki-input" placeholder="wikiID (one per line, same order as selected)&#10;Leave blank lines to skip"></textarea>
+      <textarea id="move-wiki-input" placeholder="💙 Book ID (one per line, same order as selected)&#10;Leave blank lines to skip"></textarea>
       <div class="hint" id="move-books-hint"></div>
     </div>
     <button class="btn primary" onclick="submitMove()">Confirm Move</button>
@@ -678,21 +678,23 @@ async function saveUploading() {
 }
 
 // ── SCRAPER ─────────────────────────────────────────────────
-async function triggerScraper() {
+async function triggerScraper(mode) {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  const btn = document.getElementById('scrape-btn');
+  const btnId = mode === 'completed' ? 'scrape-btn-completed' : 'scrape-btn-auto';
+  const label = mode === 'completed' ? '▶ Completed' : '▶ Ongoing';
+  const btn = document.getElementById(btnId);
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Triggering…';
   try {
     await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
-      method: 'POST', body: JSON.stringify({ ref: 'main' })
+      method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { mode } })
     });
-    toast('Scraper triggered! Auto-refreshing in ~10min.', 'success');
+    toast(`Scraper [${mode}] triggered! Auto-refreshing in ~10min.`, 'success');
     btn.innerHTML = '⏳ Running…';
-    setTimeout(async () => { await loadData(); btn.disabled = false; btn.innerHTML = '▶ Run Scraper'; }, 600000);
+    setTimeout(async () => { await loadData(); btn.disabled = false; btn.innerHTML = label; }, 600000);
   } catch(e) {
     toast('Failed to trigger: ' + e.message, 'error');
-    btn.disabled = false; btn.innerHTML = '▶ Run Scraper';
+    btn.disabled = false; btn.innerHTML = label;
   }
 }
 
