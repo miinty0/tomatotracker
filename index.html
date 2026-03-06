@@ -62,7 +62,7 @@
   select:focus, input:focus { border-color: var(--accent); }
   select { cursor: pointer; }
 
-  /* ── SEARCH ── */
+  /*  SEARCH  */
   .search-wrap { position: relative; display: inline-flex; align-items: center; }
   .search-icon { position: absolute; left: 8px; color: var(--text3); font-size: 13px; pointer-events: none; line-height: 1; }
   .search-input {
@@ -215,7 +215,7 @@
   <div class="logo">🍅<span>/</span>tracker</div>
   <div class="tab-bar">
     <div class="tab active" onclick="switchTab('waiting')">⏳ Waiting <span id="waiting-count-badge" class="tag tag-blue" style="margin-left:4px;font-size:9px;"></span></div>
-    <div class="tab" onclick="switchTab('uploading')">📕 Uploading <span id="trans-count-badge" class="tag tag-green" style="margin-left:4px;font-size:9px;"></span></div>
+    <div class="tab" onclick="switchTab('uploading')">✍️ Uploading <span id="trans-count-badge" class="tag tag-green" style="margin-left:4px;font-size:9px;"></span></div>
     <div class="tab" onclick="switchTab('settings')">⚙️ Settings</div>
   </div>
   <div class="header-right">
@@ -343,7 +343,7 @@
       <div class="filter-pills" id="uploading-filters">
         <div class="pill active" data-filter="all" onclick="setUploadingFilter('all')">Tất cả</div>
         <div class="pill pill-green" data-filter="ongoing" onclick="setUploadingFilter('ongoing')">🟢 Còn tiếp</div>
-        <div class="pill pill-orange" data-filter="completed" onclick="setUploadingFilter('completed')">🟡 Hoàn thành</div>
+        <div class="pill pill-orange" data-filter="completed" onclick="setUploadingFilter('completed')">✅ Hoàn thành</div>
       </div>
     </div>
     <div class="toolbar-right">
@@ -486,7 +486,7 @@
 <div id="toast"></div>
 
 <script>
-// ── CONFIG & STATE ──────────────────────────────────────────
+//CONFIG & STATE 
 let CFG = { repo: '', token: '', wiki_url: '', fanqie_url: '' };
 let waitingList = [];
 let uploadingList = [];
@@ -500,13 +500,10 @@ let pendingUpdates = new Map();
 // Search state
 let searchWaiting = '';
 let searchUploading = '';
-
-// Current sort column + direction (for header highlight)
 let sortStateWaiting = { col: null, dir: 'asc' };
 let sortStateTrans   = { col: null, dir: 'asc' };
 
-// ── SORT MAPS ───────────────────────────────────────────────
-// col key → [asc select value, desc select value]
+//SORT MAPS ─
 const WAITING_SORT_MAP = {
   title:            ['title_asc',    'title_desc'],
   current_chapters: ['chapters_asc', 'chapters_desc'],
@@ -514,7 +511,6 @@ const WAITING_SORT_MAP = {
   last_updated:     ['updated_asc',  'updated_desc'],
   desired_date:     ['deadline_asc', 'deadline_desc'],
 };
-// col key → [asc, desc], and which <th> id to highlight
 const TRANS_SORT_MAP = {
   vi_title:          ['title_asc',    'title_desc'],
   fanqie_chapters:   ['fanqie_asc',   'fanqie_desc'],
@@ -574,7 +570,7 @@ function updateSortHeaders(table, sortMap, selectId) {
   });
 }
 
-// ── CONFIG ──────────────────────────────────────────────────
+//CONFIG 
 function saveConfig() {
   CFG.repo = document.getElementById('cfg-repo').value.trim();
   CFG.token = document.getElementById('cfg-token').value.trim();
@@ -608,7 +604,7 @@ async function testConfig() {
   } catch(e) { toast('Connection failed: ' + e.message, 'error'); }
 }
 
-// ── GITHUB API ──────────────────────────────────────────────
+//GITHUB API 
 async function ghApi(path, options = {}) {
   const res = await fetch(`https://api.github.com${path}`, {
     ...options,
@@ -657,7 +653,7 @@ async function putFile(filename, content, sha) {
   return ghApi(`/repos/${CFG.repo}/contents/${filename}`, { method: 'PUT', body: JSON.stringify(body) });
 }
 
-// ── LOAD DATA ───────────────────────────────────────────────
+//LOAD DATA ─
 async function loadData() {
   if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
   document.getElementById('refresh-icon').className = 'spinner';
@@ -688,7 +684,7 @@ async function saveUploading() {
   await putFile('uploading_list.json', uploadingList, sha);
 }
 
-// ── SCRAPER ─────────────────────────────────────────────────
+//SCRAPER ─
 async function triggerScraper(mode) {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const btnId = mode === 'completed' ? 'scrape-btn-completed' : 'scrape-btn-auto';
@@ -709,7 +705,7 @@ async function triggerScraper(mode) {
   }
 }
 
-// ── TABS ────────────────────────────────────────────────────
+//TABS 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t, i) => {
     t.classList.toggle('active', ['waiting','uploading','settings'][i] === tab);
@@ -734,7 +730,7 @@ function updateTheadTop() {
   document.documentElement.style.setProperty('--thead-top', (toolbarBottom + addPanelH + bannersH) + 'px');
 }
 
-// ── DATE HELPERS ────────────────────────────────────────────
+//DATE HELPERS 
 function parseDesiredDate(str) {
   if (!str) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
@@ -770,7 +766,7 @@ function fmtDeadline(dateStr) {
   return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
 }
 
-// ── SEARCH HELPERS ──────────────────────────────────────────
+//SEARCH HELPERS 
 function esc(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -815,7 +811,13 @@ function setSearchCount(list, shown, total) {
   el.textContent = `${shown} / ${total} match`;
 }
 
-// ── RENDER HELPERS ──────────────────────────────────────────
+//COPY LINK 
+function copyFanqieLink(fanqieId) {
+  const url = CFG.fanqie_url + fanqieId;
+  navigator.clipboard.writeText(url).then(() => toast('Đã copy link 🍅', 'success')).catch(() => toast('Copy thất bại', 'error'));
+}
+
+//RENDER HELPERS 
 function fmtStatus(status) {
   if (!status) return '<span class="tag tag-blue">—</span>';
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
@@ -868,7 +870,7 @@ function matchChangedFilter(book) {
   return true;
 }
 
-// ── INLINE UPDATES ──────────────────────────────────────────
+//INLINE UPDATES 
 function onInlineInput(fanqieId, rawVal) {
   const book = uploadingList.find(b => b.fanqie_id === fanqieId);
   if (!book) return;
@@ -907,7 +909,7 @@ function discardInlineUpdates() {
   renderUploading();
 }
 
-// ── SORTED/FILTERED ARRAYS ───────────────────────────────────
+//SORTED/FILTERED ARRAYS ─
 function sortedWaiting() {
   let arr = [...waitingList].filter(b => bookMatchesSearch(b, searchWaiting));
   const s = document.getElementById('waiting-sort')?.value || 'default';
@@ -952,7 +954,7 @@ function sortedUploading() {
   return arr;
 }
 
-// ── RENDER WAITING ──────────────────────────────────────────
+//RENDER WAITING 
 function renderWaiting() {
   updateSortHeaders('waiting', WAITING_SORT_MAP, 'waiting-sort');
   const tbody = document.getElementById('waiting-tbody');
@@ -989,7 +991,7 @@ function renderWaiting() {
       <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('waiting','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
       <td class="title-cell">
         <div class="title-main">${titleLink}</div>
-        <div class="title-id"><a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link">${idHtml}</a></div>
+        <div class="title-id"><span class="link" style="cursor:pointer" onclick="copyFanqieLink('${esc(book.fanqie_id)}')" title="Copy link 🍅">${idHtml}</span></div>
       </td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
       <td class="mono">${book.desired_chapters}</td>
@@ -1006,7 +1008,7 @@ function renderWaiting() {
   updateSelectionUI(); updateBadges();
 }
 
-// ── RENDER UPLOADING ─────────────────────────────────────────
+//RENDER UPLOADING ─
 function renderUploading() {
   updateSortHeaders('uploading', TRANS_SORT_MAP, 'trans-sort');
   const tbody = document.getElementById('uploading-tbody');
@@ -1040,7 +1042,7 @@ function renderUploading() {
       <td class="check-col"><input type="checkbox" tabindex="-1" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('uploading','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
       <td class="title-cell">
         <div class="title-main" title="${safeTitle}">${titleHtml}</div>
-        <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${idHtml}</a></div>
+        <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <span class="link" style="cursor:pointer" onclick="copyFanqieLink('${esc(book.fanqie_id)}')" title="Copy link 🍅" tabindex="-1">${idHtml}</span></div>
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
       <td class="mono">${book.uploaded_chapters||0}</td>
@@ -1060,7 +1062,7 @@ function renderUploading() {
   updateSelectionUI(); updateBadges();
 }
 
-// ── RENDER CHANGED ──────────────────────────────────────────
+//RENDER CHANGED 
 function sortedChanged() {
   let arr = uploadingList.filter(b => isChangedBook(b) && matchChangedFilter(b));
   const s = document.getElementById('changed-sort')?.value || 'default';
@@ -1090,7 +1092,7 @@ function renderChanged() {
     <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('changed','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
     <td class="title-cell">
       <div class="title-main">${esc(book.vi_title||'—')}</div>
-      <div class="title-id">${book.wiki_id ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${esc(book.fanqie_id)}</a></div>
+      <div class="title-id">${book.wiki_id ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <span class="link" style="cursor:pointer" onclick="copyFanqieLink('${esc(book.fanqie_id)}')" title="Copy link 🍅" tabindex="-1">${esc(book.fanqie_id)}</span></div>
     </td>
     <td class="mono">${book.fanqie_chapters||'?'}</td>
     <td class="mono">${book.uploaded_chapters||0}</td>
@@ -1121,7 +1123,7 @@ function updateBadges() {
   document.getElementById('trans-count-badge').textContent = uploadingList.length||'';
 }
 
-// ── SELECTION ───────────────────────────────────────────────
+//SELECTION ─
 let lastClickedId = { waiting: null, uploading: null, changed: null };
 
 function toggleSelect(list, id, checked, event) {
@@ -1189,7 +1191,7 @@ function updateSelectionUI() {
   document.getElementById('changed-del-btn').style.display = cc ? 'inline-flex' : 'none';
 }
 
-// ── ADD PANELS ──────────────────────────────────────────────
+//ADD PANELS 
 function toggleAddPanel(list) {
   document.getElementById(`add-panel-${list}`).classList.toggle('open');
   requestAnimationFrame(updateTheadTop);
@@ -1236,7 +1238,7 @@ async function submitAdd(list) {
   }
 }
 
-// ── MOVE TO UPLOADING ───────────────────────────────────────
+//MOVE TO UPLOADING ─
 function openMovePanel() {
   if (!selectedWaiting.size) return;
   const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
@@ -1265,7 +1267,7 @@ async function submitMove() {
   toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
 }
 
-// ── DELETE ──────────────────────────────────────────────────
+//DELETE 
 function bulkDelete(list) {
   const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
   if (!set.size) return;
@@ -1281,7 +1283,7 @@ function bulkDelete(list) {
   });
 }
 
-// ── MODAL ───────────────────────────────────────────────────
+//MODAL ─
 let _modalCallback = null;
 function showModal(title, body, onConfirm) {
   document.getElementById('modal-title').textContent = title;
@@ -1292,7 +1294,7 @@ function showModal(title, body, onConfirm) {
 function closeModal() { document.getElementById('confirm-modal').classList.remove('open'); }
 document.getElementById('modal-confirm-btn').onclick = async () => { closeModal(); if (_modalCallback) await _modalCallback(); };
 
-// ── TOAST ───────────────────────────────────────────────────
+//TOAST ─
 let _toastTimer;
 function toast(msg, type='') {
   const el = document.getElementById('toast');
@@ -1302,7 +1304,7 @@ function toast(msg, type='') {
   _toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
 }
 
-// ── INIT ────────────────────────────────────────────────────
+//INIT 
 loadConfig();
 if (CFG.repo && CFG.token) loadData(); else switchTab('settings');
 </script>
