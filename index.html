@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tomato Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #edf0f5;
+    --border: #d0d7e3;
+    --border2: #b8c2d6;
+    --accent: #1a6fd4;
+    --accent2: #6040e0;
+    --green: #1a9e55;
+    --yellow: #c49a00;
+    --red: #d63030;
+    --orange: #c45f00;
+    --text: #1a2030;
+    --text2: #4a5568;
+    --text3: #8896aa;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; min-height: 100vh; }
+  
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; gap: 16px; height: 44px; position: sticky; top: 0; z-index: 100; }
+  header .logo { font-family: var(--mono); font-weight: 600; font-size: 14px; color: var(--accent); letter-spacing: -0.5px; }
+  header .logo span { color: var(--text3); }
+  .tab-bar { display: flex; gap: 2px; }
+  .tab { padding: 5px 14px; border-radius: 4px; cursor: pointer; color: var(--text2); font-size: 12px; font-weight: 500; transition: all 0.15s; border: 1px solid transparent; }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active { color: var(--accent); background: rgba(79,158,255,0.1); border-color: rgba(79,158,255,0.2); }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .sync-info { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 4px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); cursor: pointer; font-size: 12px; font-family: var(--sans); font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+  .btn.primary:hover { background: #6bb3ff; border-color: #6bb3ff; color: #000; }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: rgba(255,90,90,0.1); }
+  .btn.ghost { border-color: var(--border); color: var(--text3); }
+  .btn.ghost:hover { border-color: var(--text2); color: var(--text2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  main { padding: 12px 16px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 0; flex-wrap: wrap; position: sticky; top: 44px; z-index: 50; background: var(--bg); padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+  .toolbar-right { display: flex; align-items: center; gap: 6px; }
+  .select-count { font-family: var(--mono); font-size: 11px; color: var(--text2); padding: 4px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+  select, input[type="text"], input[type="number"] {
+    background: var(--surface); border: 1px solid var(--border2); color: var(--text);
+    padding: 5px 9px; border-radius: 4px; font-family: var(--sans); font-size: 12px;
+    outline: none; transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+  select { cursor: pointer; }
+
+  /* ── SEARCH ── */
+  .search-wrap { position: relative; display: inline-flex; align-items: center; }
+  .search-icon { position: absolute; left: 8px; color: var(--text3); font-size: 13px; pointer-events: none; line-height: 1; }
+  .search-input {
+    padding-left: 26px !important;
+    width: 190px;
+    transition: border-color 0.15s, width 0.2s !important;
+  }
+  .search-input:focus { width: 250px; }
+  .search-input::placeholder { color: var(--text3); }
+  .search-clear {
+    position: absolute; right: 5px;
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 3px;
+    display: none; border-radius: 2px;
+  }
+  .search-clear:hover { color: var(--text2); }
+  .search-clear.visible { display: block; }
+  .search-result-count { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; display: none; }
+  .search-result-count.active { display: inline; color: var(--accent); }
+  mark.hl { background: rgba(79,158,255,0.22); color: var(--accent); border-radius: 2px; font-style: normal; }
+
+  .add-panel { background: var(--bg); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; margin-bottom: 0; display: none; position: sticky; top: var(--toolbar-bottom, 88px); z-index: 49; padding: 12px; }
+  .add-panel.open { display: block; }
+  .add-panel h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: var(--mono); }
+  .add-panel textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 4px; font-family: var(--mono); font-size: 11px; resize: vertical; min-height: 80px; outline: none; }
+  .add-panel textarea:focus { border-color: var(--accent); }
+  .add-panel .hint { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
+  .add-panel .actions { display: flex; gap: 6px; margin-top: 8px; }
+
+  .table-wrap { overflow-x: visible; }
+  body { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: var(--surface); position: sticky; top: var(--thead-top, 86px); z-index: 10; padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+  thead th:hover { color: var(--text2); }
+  thead th .sort-icon { margin-left: 3px; opacity: 0.4; font-style: normal; }
+  thead th.sort-active .sort-icon { opacity: 1; color: var(--accent); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface); }
+  tbody tr.selected { background: rgba(79,158,255,0.05); }
+  tbody tr.selected:hover { background: rgba(79,158,255,0.08); }
+  td { padding: 7px 10px; vertical-align: middle; }
+  td.check-col { width: 32px; }
+  input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+  .title-cell { max-width: 220px; }
+  .title-main { font-weight: 500; color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .title-id { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .mono { font-family: var(--mono); font-size: 11px; }
+  .link { color: var(--accent); text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+
+  .tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
+  .tag-green { background: rgba(45,206,122,0.12); color: var(--green); border: 1px solid rgba(45,206,122,0.25); }
+  .tag-yellow { background: rgba(245,197,66,0.12); color: var(--yellow); border: 1px solid rgba(245,197,66,0.25); }
+  .tag-red { background: rgba(255,90,90,0.12); color: var(--red); border: 1px solid rgba(255,90,90,0.25); }
+  .tag-blue { background: rgba(79,158,255,0.12); color: var(--accent); border: 1px solid rgba(79,158,255,0.25); }
+  .tag-orange { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
+  .tag-purple { background: rgba(124,92,252,0.12); color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
+
+  .deadline-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
+  .deadline-ok { background: rgba(45,206,122,0.10); color: var(--green); border: 1px solid rgba(45,206,122,0.2); }
+  .deadline-soon { background: rgba(245,197,66,0.10); color: var(--yellow); border: 1px solid rgba(245,197,66,0.2); }
+  .deadline-urgent { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
+  .deadline-overdue { background: rgba(255,90,90,0.12); color: var(--red); border: 1px solid rgba(255,90,90,0.25); }
+  .deadline-none { color: var(--text3); font-family: var(--mono); font-size: 11px; }
+
+  .warn-tags { display: flex; gap: 3px; flex-wrap: wrap; }
+
+  .progress-wrap { display: flex; align-items: center; gap: 6px; }
+  .progress-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .progress-fill.warn { background: var(--orange); }
+  .progress-fill.danger { background: var(--red); }
+
+  .ahead { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+  .ahead.ok { color: var(--green); }
+  .ahead.warn { color: var(--yellow); }
+  .ahead.danger { color: var(--red); }
+
+  .inline-update-wrap { display: flex; align-items: center; gap: 5px; }
+  .inline-ch-input {
+    width: 68px; padding: 3px 7px; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 11px;
+    outline: none; transition: border-color 0.15s, background 0.15s;
+  }
+  .inline-ch-input:focus { border-color: var(--accent); }
+  .inline-ch-input.pending { border-color: var(--yellow); background: rgba(245,197,66,0.06); color: var(--yellow); }
+
+  #inline-save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+    border-top: 2px solid var(--yellow); padding: 10px 16px; display: none; z-index: 200;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.4); animation: slideUp 0.2s ease;
+  }
+  #inline-save-bar.open { display: block; }
+  @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  #inline-save-bar .inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #inline-save-bar .hint { font-size: 11px; color: var(--yellow); font-family: var(--mono); }
+  #inline-save-bar .hint strong { color: var(--text); }
+
+  #move-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border2); padding: 10px 16px; display: none; z-index: 200; box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
+  #move-panel.open { display: block; }
+  #move-panel .inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #move-panel label { font-size: 12px; color: var(--text2); font-weight: 500; }
+  #move-panel textarea { width: 300px; min-height: 60px; font-family: var(--mono); font-size: 11px; }
+  #move-panel .hint { font-size: 10px; color: var(--text3); font-family: var(--mono); }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 12px; }
+  .empty .icon { font-size: 28px; margin-bottom: 8px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: none; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 20px; min-width: 340px; max-width: 500px; }
+  .modal h3 { font-size: 14px; margin-bottom: 12px; }
+  .modal p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  .filter-pills { display: flex; gap: 4px; }
+  .pill { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); font-size: 11px; color: var(--text2); cursor: pointer; font-weight: 500; transition: all 0.15s; }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill.active { background: rgba(79,158,255,0.1); border-color: var(--accent); color: var(--accent); }
+  .pill-green { color: var(--green); border-color: rgba(45,206,122,0.35); }
+  .pill-green:hover { border-color: var(--green) !important; color: var(--green) !important; }
+  .pill-green.active { background: rgba(45,206,122,0.12); border-color: var(--green); color: var(--green); }
+  .pill-orange { color: var(--orange); border-color: rgba(255,140,66,0.35); }
+  .pill-orange:hover { border-color: var(--orange) !important; color: var(--orange) !important; }
+  .pill-orange.active { background: rgba(255,140,66,0.12); border-color: var(--orange); color: var(--orange); }
+
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #toast { position: fixed; bottom: 70px; right: 16px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 14px; font-size: 12px; z-index: 400; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 300px; }
+  #toast.show { display: block; animation: fadeIn 0.2s; }
+  #toast.success { border-color: var(--green); }
+  #toast.error { border-color: var(--red); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .alert-banner { background: rgba(245,197,66,0.08); border: 1px solid rgba(245,197,66,0.25); border-radius: 5px; padding: 8px 12px; margin-bottom: 0; font-size: 11px; color: var(--yellow); display: flex; align-items: center; gap: 6px; position: sticky; top: var(--toolbar-bottom, 88px); z-index: 48; }
+
+  #token-setup { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+  #token-setup h4 { font-size: 12px; margin-bottom: 8px; color: var(--text2); }
+  #token-setup .note { font-size: 10px; color: var(--text3); margin-top: 6px; font-family: var(--mono); }
+  .config-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .config-row label { font-size: 11px; color: var(--text2); white-space: nowrap; min-width: 80px; }
+  .config-row input { flex: 1; min-width: 160px; font-family: var(--mono); font-size: 11px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🍅<span>/</span>tracker</div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('waiting')">⏳ Waiting <span id="waiting-count-badge" class="tag tag-blue" style="margin-left:4px;font-size:9px;"></span></div>
+    <div class="tab" onclick="switchTab('uploading')">✍️ Uploading <span id="trans-count-badge" class="tag tag-green" style="margin-left:4px;font-size:9px;"></span></div>
+    <div class="tab" onclick="switchTab('settings')">⚙️ Settings</div>
+  </div>
+  <div class="header-right">
+    <span class="sync-info" id="sync-info">—</span>
+    <button class="btn" id="scrape-btn-auto" onclick="triggerScraper('auto')">▶ Ongoing</button><button class="btn" id="scrape-btn-completed" onclick="triggerScraper('completed')">▶ Completed</button>
+    <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span> Refresh</button>
+  </div>
+</header>
+
+<main>
+
+<!-- SETTINGS -->
+<div class="section" id="section-settings">
+  <div id="token-setup">
+    <h4>GitHub Configuration</h4>
+    <div class="config-row">
+      <label>Repo</label>
+      <input id="cfg-repo" type="text" placeholder="username/repo-name" />
+    </div>
+    <div class="config-row">
+      <label>PAT Token</label>
+      <input id="cfg-token" type="password" placeholder="" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn primary" onclick="saveConfig()">Save Config</button>
+      <button class="btn" onclick="testConfig()">Test Connection</button>
+    </div>
+    <div class="note">Token is stored in localStorage. Required scopes: repo (or contents + issues)</div>
+  </div>
+  <div id="token-setup">
+    <h4>URL Configuration</h4>
+    <div class="config-row">
+      <label>💙 base URL</label>
+      <input id="cfg-wiki-url" type="text" placeholder="https://example.com/truyen/" />
+    </div>
+    <div class="config-row">
+      <label>🍅 base URL</label>
+      <input id="cfg-fanqie-url" type="text" placeholder="https://example.com/page/" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn primary" onclick="saveConfig()">Save Config</button>
+    </div>
+    <div class="note">Base URLs for links. Trailing slash required.</div>
+  </div>
+</div>
+
+<!-- WAITING LIST -->
+<div class="section active" id="section-waiting">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="btn" onclick="toggleAddPanel('waiting')">+ Add Books</button>
+      <button class="btn" onclick="selectAllVisible('waiting')">Select All</button>
+      <span class="select-count" id="waiting-sel-count" style="display:none"></span>
+      <button class="btn ghost" id="waiting-desel-btn" onclick="deselectAll('waiting')" style="display:none">✕ Deselect</button>
+      <button class="btn danger" id="waiting-del-btn" onclick="bulkDelete('waiting')" style="display:none">🗑 Delete</button>
+      <button class="btn" id="waiting-promote-btn" onclick="openMovePanel()" style="display:none">→ Move to Uploading</button>
+    </div>
+    <div class="toolbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="waiting-search"
+          placeholder="Search title or ID…"
+          oninput="onSearch('waiting')" />
+        <button class="search-clear" id="waiting-search-clear" onclick="clearSearch('waiting')" title="Clear">×</button>
+      </div>
+      <span class="search-result-count" id="waiting-search-count"></span>
+      <select id="waiting-sort" onchange="renderWaiting()">
+        <option value="default">Sort: Default</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="title_desc">Title Z→A</option>
+        <option value="chapters_asc">Chapters ↑</option>
+        <option value="chapters_desc">Chapters ↓</option>
+        <option value="status_asc">Status A→Z</option>
+        <option value="updated_asc">Updated ↑ (Oldest)</option>
+        <option value="updated_desc">Updated ↓ (Newest)</option>
+        <option value="deadline_asc">Deadline ↑ (Soonest)</option>
+        <option value="deadline_desc">Deadline ↓ (Latest)</option>
+        <option value="ready">Ready First</option>
+      </select>
+    </div>
+  </div>
+  <div class="add-panel" id="add-panel-waiting">
+    <h4>Add to Waiting List — Bulk</h4>
+    <textarea id="waiting-input" placeholder="Tên tiếng Việt | số chương mong muốn | 🍅 Book ID | ngày mong muốn (DD/MM/YYYY, tùy chọn)&#10;Ví dụ:&#10;Xuyên thành nông gia | 300 | 7506507753850948633 | 28/02/2026"></textarea>
+    <div class="hint">Format: Vietnamese Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
+    <div class="actions">
+      <button class="btn primary" onclick="submitAdd('waiting')">Add Books</button>
+      <button class="btn" onclick="toggleAddPanel('waiting')">Cancel</button>
+    </div>
+  </div>
+  <div id="waiting-ready-banner" class="alert-banner" style="display:none">
+    ⚠️ Some books have reached their desired chapter count — select and move them to Uploading.
+  </div>
+  <div id="waiting-deadline-banner" class="alert-banner" style="display:none;border-color:rgba(255,90,90,0.4);background:rgba(255,90,90,0.06);color:var(--red);">
+    🔴 Some books are overdue or due very soon!
+  </div>
+  <div class="table-wrap">
+    <table id="waiting-table">
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox" id="waiting-check-all" onchange="toggleCheckAll('waiting', this.checked)"></th>
+          <th id="wth-title" onclick="setSortWaiting('title')">Title <span class="sort-icon">↕</span></th>
+          <th id="wth-chapters" onclick="setSortWaiting('current_chapters')">Chapters <span class="sort-icon">↕</span></th>
+          <th>Desired Ch.</th>
+          <th id="wth-status" onclick="setSortWaiting('status')">Status <span class="sort-icon">↕</span></th>
+          <th id="wth-updated" onclick="setSortWaiting('last_updated')">Last Update <span class="sort-icon">↕</span></th>
+          <th id="wth-deadline" onclick="setSortWaiting('desired_date')">Desired Date <span class="sort-icon">↕</span></th>
+          <th>Ready?</th>
+        </tr>
+      </thead>
+      <tbody id="waiting-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- UPLOADING LIST -->
+<div class="section" id="section-uploading">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="btn" onclick="toggleAddPanel('uploading')">+ Add Books</button>
+      <button class="btn" onclick="selectAllVisible('uploading')">Select All</button>
+      <span class="select-count" id="trans-sel-count" style="display:none"></span>
+      <button class="btn ghost" id="trans-desel-btn" onclick="deselectAll('uploading')" style="display:none">✕ Deselect</button>
+      <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
+      <div class="filter-pills" id="uploading-filters">
+        <div class="pill active" data-filter="all" onclick="setUploadingFilter('all')">Tất cả</div>
+        <div class="pill pill-green" data-filter="ongoing" onclick="setUploadingFilter('ongoing')">🟢 Còn tiếp</div>
+        <div class="pill pill-orange" data-filter="completed" onclick="setUploadingFilter('completed')">✅ Hoàn thành</div>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="uploading-search"
+          placeholder="Search title or ID…"
+          oninput="onSearch('uploading')" />
+        <button class="search-clear" id="uploading-search-clear" onclick="clearSearch('uploading')" title="Clear">×</button>
+      </div>
+      <span class="search-result-count" id="uploading-search-count"></span>
+      <select id="trans-sort" onchange="renderUploading()">
+        <option value="default">Sort: Default</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="title_desc">Title Z→A</option>
+        <option value="ahead_desc">Most Unuploaded</option>
+        <option value="ahead_asc">Least Unuploaded</option>
+        <option value="fanqie_asc">🍅 Ch. ↑</option>
+        <option value="fanqie_desc">🍅 Ch. ↓</option>
+        <option value="uploaded_asc">Uploaded Ch. ↑</option>
+        <option value="uploaded_desc">Uploaded Ch. ↓</option>
+        <option value="status_asc">Status A→Z</option>
+        <option value="updated_desc">Newest Update</option>
+        <option value="updated_asc">Oldest Update</option>
+      </select>
+    </div>
+  </div>
+  <div class="add-panel" id="add-panel-uploading">
+    <h4>Add Directly to Uploading List — Bulk</h4>
+    <textarea id="uploading-input" placeholder="💙 Book ID | uploaded chapters | 🍅 Book ID&#10;Ví dụ:&#10;aTwMd0bIjhne~Hxh | 45 | 7506507753850948633"></textarea>
+    <div class="hint">Format: 💙 Book ID | Uploaded Chapters | 🍅 Book ID (one per line)</div>
+    <div class="actions">
+      <button class="btn primary" onclick="submitAdd('uploading')">Add Books</button>
+      <button class="btn" onclick="toggleAddPanel('uploading')">Cancel</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table id="uploading-table">
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox" id="trans-check-all" onchange="toggleCheckAll('uploading', this.checked)"></th>
+          <th id="uth-title" onclick="setSortTrans('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
+          <th id="uth-fanqie" onclick="setSortTrans('fanqie_chapters')">🍅 Ch. <span class="sort-icon">↕</span></th>
+          <th id="uth-uploaded" onclick="setSortTrans('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
+          <th>Set Uploaded ✏️</th>
+          <th id="uth-ahead" onclick="setSortTrans('ahead')">Ahead <span class="sort-icon">↕</span></th>
+          <th id="uth-status" onclick="setSortTrans('status')">Status <span class="sort-icon">↕</span></th>
+          <th id="uth-updated" onclick="setSortTrans('last_updated')">Last Update <span class="sort-icon">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="uploading-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CHANGED -->
+<div class="section" id="section-changed">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="btn" onclick="selectAllVisible('changed')">Select All</button>
+      <span class="select-count" id="changed-sel-count" style="display:none"></span>
+      <button class="btn ghost" id="changed-desel-btn" onclick="deselectAll('changed')" style="display:none">✕ Deselect</button>
+      <button class="btn danger" id="changed-del-btn" onclick="bulkDelete('changed')" style="display:none">🗑 Delete</button>
+      <div class="filter-pills" id="changed-filters">
+        <div class="pill active" data-filter="all" onclick="setChangedFilter('all')">All</div>
+        <div class="pill" data-filter="completed" onclick="setChangedFilter('completed')">✅ Hoàn thành</div>
+        <div class="pill" data-filter="stale" onclick="setChangedFilter('stale')">🕐 Stale 15d+</div>
+        <div class="pill" data-filter="behind" onclick="setChangedFilter('behind')">📚 >10 Unuploaded</div>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <select id="changed-sort" onchange="renderChanged()">
+        <option value="default">Sort: Default</option>
+        <option value="title_asc">Title A→Z</option>
+        <option value="title_desc">Title Z→A</option>
+        <option value="ahead_desc">Most Unuploaded</option>
+        <option value="ahead_asc">Least Unuploaded</option>
+        <option value="fanqie_asc">🍅 Ch. ↑</option>
+        <option value="fanqie_desc">🍅 Ch. ↓</option>
+        <option value="uploaded_asc">Uploaded Ch. ↑</option>
+        <option value="uploaded_desc">Uploaded Ch. ↓</option>
+        <option value="status_asc">Status A→Z</option>
+        <option value="updated_desc">Newest Update</option>
+        <option value="updated_asc">Oldest Update</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table id="changed-table">
+      <thead>
+        <tr>
+          <th class="check-col"><input type="checkbox" id="changed-check-all" onchange="toggleCheckAll('changed', this.checked)"></th>
+          <th id="cth-title" onclick="setSortChanged('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
+          <th id="cth-fanqie" onclick="setSortChanged('fanqie_chapters')">🍅 Ch. <span class="sort-icon">↕</span></th>
+          <th id="cth-uploaded" onclick="setSortChanged('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
+          <th id="cth-ahead" onclick="setSortChanged('ahead')">Ahead <span class="sort-icon">↕</span></th>
+          <th id="cth-status" onclick="setSortChanged('status')">Status <span class="sort-icon">↕</span></th>
+          <th id="cth-updated" onclick="setSortChanged('last_updated')">Last Update <span class="sort-icon">↕</span></th>
+          <th>Warnings</th>
+        </tr>
+      </thead>
+      <tbody id="changed-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<div id="inline-save-bar">
+  <div class="inner">
+    <span class="hint">✏️ <strong id="pending-count">0</strong> unsaved chapter update(s)</span>
+    <button class="btn primary" onclick="submitInlineUpdates()">💾 Save All Changes</button>
+    <button class="btn ghost" onclick="discardInlineUpdates()">Discard</button>
+  </div>
+</div>
+
+<div id="move-panel">
+  <div class="inner">
+    <label>Moving <strong id="move-count">0</strong> book(s) → Uploading. Add 💙 Book IDs (optional):</label>
+    <div>
+      <textarea id="move-wiki-input" placeholder="💙 Book ID (one per line, same order as selected)&#10;Leave blank lines to skip"></textarea>
+      <div class="hint" id="move-books-hint"></div>
+    </div>
+    <button class="btn primary" onclick="submitMove()">Confirm Move</button>
+    <button class="btn" onclick="closeMovePanel()">Cancel</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <h3 id="modal-title">Confirm Action</h3>
+    <p id="modal-body"></p>
+    <div class="actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn danger" id="modal-confirm-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG & STATE ──────────────────────────────────────────
+let CFG = { repo: '', token: '', wiki_url: '', fanqie_url: '' };
+let waitingList = [];
+let uploadingList = [];
+let selectedWaiting = new Set();
+let selectedUploading = new Set();
+let selectedChanged = new Set();
+let changedFilter = 'all';
+let uploadingFilter = 'all';
+let pendingUpdates = new Map();
+
+// Search state
+let searchWaiting = '';
+let searchUploading = '';
+
+// Current sort column + direction (for header highlight)
+let sortStateWaiting = { col: null, dir: 'asc' };
+let sortStateTrans   = { col: null, dir: 'asc' };
+
+// ── SORT MAPS ───────────────────────────────────────────────
+// col key → [asc select value, desc select value]
+const WAITING_SORT_MAP = {
+  title:            ['title_asc',    'title_desc'],
+  current_chapters: ['chapters_asc', 'chapters_desc'],
+  status:           ['status_asc',   'status_asc'],
+  last_updated:     ['updated_asc',  'updated_desc'],
+  desired_date:     ['deadline_asc', 'deadline_desc'],
+};
+// col key → [asc, desc], and which <th> id to highlight
+const TRANS_SORT_MAP = {
+  vi_title:          ['title_asc',    'title_desc'],
+  fanqie_chapters:   ['fanqie_asc',   'fanqie_desc'],
+  uploaded_chapters: ['uploaded_asc', 'uploaded_desc'],
+  ahead:             ['ahead_asc',    'ahead_desc'],
+  status:            ['status_asc',   'status_asc'],
+  last_updated:      ['updated_asc',  'updated_desc'],
+};
+
+function setSortWaiting(col) {
+  const sel = document.getElementById('waiting-sort');
+  const [asc, desc] = WAITING_SORT_MAP[col] || ['default','default'];
+  // Toggle: if currently set to asc option, switch to desc; otherwise go asc
+  sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
+  renderWaiting();
+}
+
+function setSortTrans(col) {
+  const sel = document.getElementById('trans-sort');
+  const [asc, desc] = TRANS_SORT_MAP[col] || ['default','default'];
+  sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
+  renderUploading();
+}
+
+const CHANGED_SORT_MAP = {
+  vi_title:          ['title_asc',    'title_desc'],
+  fanqie_chapters:   ['fanqie_asc',   'fanqie_desc'],
+  uploaded_chapters: ['uploaded_asc', 'uploaded_desc'],
+  ahead:             ['ahead_asc',    'ahead_desc'],
+  status:            ['status_asc',   'status_asc'],
+  last_updated:      ['updated_asc',  'updated_desc'],
+};
+
+// Highlight the active sort column header
+function setSortChanged(col) {
+  const sel = document.getElementById('changed-sort');
+  const [asc, desc] = CHANGED_SORT_MAP[col] || ['default','default'];
+  sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
+  renderChanged();
+}
+
+function updateSortHeaders(table, sortMap, selectId) {
+  const val = document.getElementById(selectId)?.value || 'default';
+  Object.entries(sortMap).forEach(([col, [asc, desc]]) => {
+    const thId = table === 'waiting'
+      ? { title:'wth-title', current_chapters:'wth-chapters', status:'wth-status', last_updated:'wth-updated', desired_date:'wth-deadline' }[col]
+      : table === 'changed'
+      ? { vi_title:'cth-title', fanqie_chapters:'cth-fanqie', uploaded_chapters:'cth-uploaded', ahead:'cth-ahead', status:'cth-status', last_updated:'cth-updated' }[col]
+      : { vi_title:'uth-title', fanqie_chapters:'uth-fanqie', uploaded_chapters:'uth-uploaded', ahead:'uth-ahead', status:'uth-status', last_updated:'uth-updated' }[col];
+    if (!thId) return;
+    const th = document.getElementById(thId);
+    if (!th) return;
+    const isActive = val === asc || val === desc;
+    th.classList.toggle('sort-active', isActive);
+    const icon = th.querySelector('.sort-icon');
+    if (icon) icon.textContent = isActive ? (val === desc && asc !== desc ? '↓' : '↑') : '↕';
+  });
+}
+
+// ── CONFIG ──────────────────────────────────────────────────
+function saveConfig() {
+  CFG.repo = document.getElementById('cfg-repo').value.trim();
+  CFG.token = document.getElementById('cfg-token').value.trim();
+  CFG.wiki_url = document.getElementById('cfg-wiki-url').value.trim().replace(/\/?$/, '/');
+  CFG.fanqie_url = document.getElementById('cfg-fanqie-url').value.trim().replace(/\/?$/, '/');
+  if (!CFG.repo || !CFG.token) { toast('Please fill repo and token.', 'error'); return; }
+  localStorage.setItem('fq_repo', CFG.repo);
+  localStorage.setItem('fq_token', CFG.token);
+  localStorage.setItem('fq_wiki_url', CFG.wiki_url);
+  localStorage.setItem('fq_fanqie_url', CFG.fanqie_url);
+  toast('Config saved!', 'success');
+  loadData();
+}
+
+function loadConfig() {
+  CFG.repo = localStorage.getItem('fq_repo') || '';
+  CFG.token = localStorage.getItem('fq_token') || '';
+  CFG.wiki_url = localStorage.getItem('fq_wiki_url') || '';
+  CFG.fanqie_url = localStorage.getItem('fq_fanqie_url') || '';
+  if (CFG.repo) document.getElementById('cfg-repo').value = CFG.repo;
+  if (CFG.token) document.getElementById('cfg-token').value = CFG.token;
+  if (CFG.wiki_url) document.getElementById('cfg-wiki-url').value = CFG.wiki_url;
+  if (CFG.fanqie_url) document.getElementById('cfg-fanqie-url').value = CFG.fanqie_url;
+}
+
+async function testConfig() {
+  if (!CFG.repo || !CFG.token) { toast('Save config first.', 'error'); return; }
+  try {
+    const r = await ghApi(`/repos/${CFG.repo}`);
+    toast(`Connected: ${r.full_name}`, 'success');
+  } catch(e) { toast('Connection failed: ' + e.message, 'error'); }
+}
+
+// ── GITHUB API ──────────────────────────────────────────────
+async function ghApi(path, options = {}) {
+  const res = await fetch(`https://api.github.com${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${CFG.token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || res.statusText);
+  }
+  if (res.status === 204 || res.headers.get('content-length') === '0') return {};
+  return res.json();
+}
+
+function b64ToUtf8(b64) {
+  const binary = atob(b64.replace(/\n/g, ''));
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+function utf8ToB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
+}
+
+async function getFile(filename) {
+  try {
+    const data = await ghApi(`/repos/${CFG.repo}/contents/${filename}`);
+    const content = b64ToUtf8(data.content);
+    return { data: JSON.parse(content), sha: data.sha };
+  } catch(e) {
+    if (e.message.includes('404') || e.message.includes('Not Found')) return { data: [], sha: null };
+    throw e;
+  }
+}
+
+async function putFile(filename, content, sha) {
+  const body = { message: `Update ${filename} via web UI`, content: utf8ToB64(JSON.stringify(content, null, 2)) };
+  if (sha) body.sha = sha;
+  return ghApi(`/repos/${CFG.repo}/contents/${filename}`, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+// ── LOAD DATA ───────────────────────────────────────────────
+async function loadData() {
+  if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
+  document.getElementById('refresh-icon').className = 'spinner';
+  try {
+    const [w, t] = await Promise.all([getFile('waiting_list.json'), getFile('uploading_list.json')]);
+    waitingList = w.data;
+    uploadingList = t.data;
+    document.getElementById('sync-info').textContent = 'synced ' + new Date().toLocaleTimeString();
+    pendingUpdates.clear();
+    updateSaveBar();
+    renderAll();
+    toast('Data loaded.', 'success');
+  } catch(e) {
+    toast('Load failed: ' + e.message, 'error');
+  } finally {
+    document.getElementById('refresh-icon').className = '';
+    document.getElementById('refresh-icon').textContent = '↻';
+  }
+}
+
+async function saveWaiting() {
+  const { sha } = await getFile('waiting_list.json');
+  await putFile('waiting_list.json', waitingList, sha);
+}
+
+async function saveUploading() {
+  const { sha } = await getFile('uploading_list.json');
+  await putFile('uploading_list.json', uploadingList, sha);
+}
+
+// ── SCRAPER ─────────────────────────────────────────────────
+async function triggerScraper(mode) {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  const btnId = mode === 'completed' ? 'scrape-btn-completed' : 'scrape-btn-auto';
+  const label = mode === 'completed' ? '▶ Completed' : '▶ Ongoing';
+  const btn = document.getElementById(btnId);
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Triggering…';
+  try {
+    await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
+      method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { mode } })
+    });
+    toast(`Scraper [${mode}] triggered! Auto-refreshing in ~10min.`, 'success');
+    btn.innerHTML = '⏳ Running…';
+    setTimeout(async () => { await loadData(); btn.disabled = false; btn.innerHTML = label; }, 600000);
+  } catch(e) {
+    toast('Failed to trigger: ' + e.message, 'error');
+    btn.disabled = false; btn.innerHTML = label;
+  }
+}
+
+// ── TABS ────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['waiting','uploading','settings'][i] === tab);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + tab).classList.add('active');
+  updateTheadTop();
+}
+
+function updateTheadTop() {
+  const headerH = document.querySelector('header')?.offsetHeight || 44;
+  const section = document.querySelector('.section.active');
+  const toolbarH = section?.querySelector('.toolbar')?.offsetHeight || 0;
+  const addPanelEl = section?.querySelector('.add-panel.open');
+  const addPanelH = addPanelEl ? addPanelEl.offsetHeight : 0;
+  const toolbarBottom = headerH + toolbarH;
+  document.documentElement.style.setProperty('--toolbar-bottom', toolbarBottom + 'px');
+  let bannersH = 0;
+  section?.querySelectorAll('.alert-banner').forEach(b => {
+    if (b.style.display !== 'none') bannersH += b.offsetHeight;
+  });
+  document.documentElement.style.setProperty('--thead-top', (toolbarBottom + addPanelH + bannersH) + 'px');
+}
+
+// ── DATE HELPERS ────────────────────────────────────────────
+function parseDesiredDate(str) {
+  if (!str) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  const parts = str.split('/');
+  if (parts.length !== 3) return null;
+  const [d, m, y] = parts.map(Number);
+  if (!d || !m || !y) return null;
+  return new Date(y, m - 1, d);
+}
+
+function daysUntilDeadline(dateStr) {
+  const target = parseDesiredDate(dateStr);
+  if (!target) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.ceil((target.getTime() - today.getTime()) / 86400000);
+}
+
+function fmtDeadline(dateStr) {
+  if (!dateStr) return '<span class="deadline-none">—</span>';
+  const days = daysUntilDeadline(dateStr);
+  const target = parseDesiredDate(dateStr);
+  if (!target) return '<span class="deadline-none">—</span>';
+  const dd = String(target.getDate()).padStart(2,'0');
+  const mm = String(target.getMonth()+1).padStart(2,'0');
+  const display = `${dd}/${mm}/${target.getFullYear()}`;
+  if (days < 0)  return `<span class="deadline-badge deadline-overdue">🔴 ${display} (${Math.abs(days)}d overdue)</span>`;
+  if (days === 0) return `<span class="deadline-badge deadline-urgent">🔴 TODAY</span>`;
+  if (days <= 3) return `<span class="deadline-badge deadline-urgent">🔴 ${display} (${days}d left)</span>`;
+  if (days <= 7) return `<span class="deadline-badge deadline-soon">🟡 ${display} (${days}d left)</span>`;
+  return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
+}
+
+// ── SEARCH HELPERS ──────────────────────────────────────────
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function bookMatchesSearch(book, q) {
+  if (!q) return true;
+  const lq = q.toLowerCase();
+  return (book.vi_title||'').toLowerCase().includes(lq) || (book.fanqie_id||'').toLowerCase().includes(lq);
+}
+
+/** Highlight query match in plain text, returning safe HTML */
+function hl(text, q) {
+  const safe = esc(text);
+  if (!q || !text) return safe;
+  const lq = q.toLowerCase();
+  const lt = text.toLowerCase();
+  const i = lt.indexOf(lq);
+  if (i === -1) return safe;
+  return esc(text.slice(0,i)) + `<mark class="hl">${esc(text.slice(i, i+q.length))}</mark>` + esc(text.slice(i+q.length));
+}
+
+function onSearch(list) {
+  const val = document.getElementById(`${list}-search`).value;
+  const clearBtn = document.getElementById(`${list}-search-clear`);
+  clearBtn.classList.toggle('visible', val.length > 0);
+  if (list === 'waiting') { searchWaiting = val; renderWaiting(); }
+  else { searchUploading = val; renderUploading(); }
+}
+
+function clearSearch(list) {
+  document.getElementById(`${list}-search`).value = '';
+  document.getElementById(`${list}-search-clear`).classList.remove('visible');
+  if (list === 'waiting') { searchWaiting = ''; renderWaiting(); }
+  else { searchUploading = ''; renderUploading(); }
+}
+
+function setSearchCount(list, shown, total) {
+  const el = document.getElementById(`${list}-search-count`);
+  const q = list === 'waiting' ? searchWaiting : searchUploading;
+  if (!q) { el.className = 'search-result-count'; el.textContent = ''; return; }
+  el.className = 'search-result-count active';
+  el.textContent = `${shown} / ${total} match`;
+}
+
+// ── RENDER HELPERS ──────────────────────────────────────────
+function fmtStatus(status) {
+  if (!status) return '<span class="tag tag-blue">—</span>';
+  if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
+  if (status.includes('已完结') || status.includes('hoàn thành')) return '<span class="tag tag-orange">Hoàn thành</span>';
+  if (status.includes('已删除')) return '<span class="tag tag-red">Đã xóa</span>';
+  return `<span class="tag tag-blue">${esc(status)}</span>`;
+}
+
+function daysSince(dateStr) {
+  if (!dateStr) return 9999;
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+}
+
+function fmtDate(dateStr, status) {
+  if (!dateStr) return '<span style="color:var(--text3)">—</span>';
+  const d = daysSince(dateStr);
+  const s = (status||'').toLowerCase();
+  const isCompleted = s.includes('已完结') || s.includes('hoàn thành');
+  const cls = (!isCompleted && d >= 15) ? 'color:var(--red)' : (!isCompleted && d >= 7) ? 'color:var(--yellow)' : 'color:var(--text2)';
+  return `<span style="${cls}" class="mono">${dateStr.slice(0,10)}</span>`;
+}
+
+function aheadBadge(fanqie_ch, uploaded_ch) {
+  const diff = (fanqie_ch||0) - (uploaded_ch||0);
+  if (diff <= 0) return `<span class="ahead ok">0</span>`;
+  const cls = diff >= 11 ? 'danger' : diff >= 5 ? 'warn' : 'ok';
+  return `<span class="ahead ${cls}">+${diff}</span>`;
+}
+
+function getWarnTags(book) {
+  const tags = [];
+  const status = (book.status||'').toLowerCase();
+  const isCompleted = status.includes('已完结') || status.includes('hoàn thành');
+  if (!isCompleted && daysSince(book.last_updated) >= 15)
+    tags.push('<span class="tag tag-red">🕐 Stale '+daysSince(book.last_updated)+'d</span>');
+  const ahead = (book.fanqie_chapters||0) - (book.uploaded_chapters||0);
+  if (ahead >= 11)
+    tags.push('<span class="tag tag-purple">📚 +'+ahead+' ch</span>');
+  return tags;
+}
+
+function isChangedBook(b) { return getWarnTags(b).length > 0; }
+
+function matchChangedFilter(book) {
+  if (changedFilter === 'all') return true;
+  const s = (book.status||'').toLowerCase();
+  if (changedFilter === 'completed') return s.includes('已完结') || s.includes('hoàn thành');
+  if (changedFilter === 'stale') { const s2 = (book.status||'').toLowerCase(); return daysSince(book.last_updated) >= 15 && !s2.includes('已完结') && !s2.includes('hoàn thành'); }
+  if (changedFilter === 'behind') return ((book.fanqie_chapters||0)-(book.uploaded_chapters||0)) >= 11;
+  return true;
+}
+
+// ── INLINE UPDATES ──────────────────────────────────────────
+function onInlineInput(fanqieId, rawVal) {
+  const book = uploadingList.find(b => b.fanqie_id === fanqieId);
+  if (!book) return;
+  const val = parseInt(rawVal);
+  if (!isNaN(val) && val !== book.uploaded_chapters) pendingUpdates.set(fanqieId, val);
+  else pendingUpdates.delete(fanqieId);
+  const input = document.querySelector(`.inline-ch-input[data-fid="${fanqieId}"]`);
+  if (input) input.classList.toggle('pending', pendingUpdates.has(fanqieId));
+  updateSaveBar();
+}
+
+function updateSaveBar() {
+  const n = pendingUpdates.size;
+  document.getElementById('pending-count').textContent = n;
+  document.getElementById('inline-save-bar').classList.toggle('open', n > 0);
+}
+
+async function submitInlineUpdates() {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  if (!pendingUpdates.size) return;
+  pendingUpdates.forEach((val, id) => {
+    const book = uploadingList.find(b => b.fanqie_id === id);
+    if (book) book.uploaded_chapters = val;
+  });
+  const count = pendingUpdates.size;
+  pendingUpdates.clear();
+  updateSaveBar();
+  await saveUploading();
+  renderUploading(); renderChanged();
+  toast(`Saved ${count} chapter update(s).`, 'success');
+}
+
+function discardInlineUpdates() {
+  pendingUpdates.clear();
+  updateSaveBar();
+  renderUploading();
+}
+
+// ── SORTED/FILTERED ARRAYS ───────────────────────────────────
+function sortedWaiting() {
+  let arr = [...waitingList].filter(b => bookMatchesSearch(b, searchWaiting));
+  const s = document.getElementById('waiting-sort')?.value || 'default';
+  if (s === 'title_asc')    arr.sort((a,b) => (a.vi_title||'').localeCompare(b.vi_title||'', 'vi'));
+  if (s === 'title_desc')   arr.sort((a,b) => (b.vi_title||'').localeCompare(a.vi_title||'', 'vi'));
+  if (s === 'chapters_asc') arr.sort((a,b) => (a.current_chapters||0)-(b.current_chapters||0));
+  if (s === 'chapters_desc') arr.sort((a,b) => (b.current_chapters||0)-(a.current_chapters||0));
+  if (s === 'status_asc')   arr.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+  if (s === 'updated_asc')  arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
+  if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
+  if (s === 'deadline_asc') arr.sort((a,b) => (daysUntilDeadline(a.desired_date)??99999)-(daysUntilDeadline(b.desired_date)??99999));
+  if (s === 'deadline_desc') arr.sort((a,b) => (daysUntilDeadline(b.desired_date)??99999)-(daysUntilDeadline(a.desired_date)??99999));
+  if (s === 'ready') arr.sort((a,b) => ((a.current_chapters||0)>=(a.desired_chapters||0)?0:1)-((b.current_chapters||0)>=(b.desired_chapters||0)?0:1));
+  return arr;
+}
+
+function sortedUploading() {
+  let arr = [...uploadingList].filter(b => {
+    if (!bookMatchesSearch(b, searchUploading)) return false;
+    if (uploadingFilter === 'ongoing') {
+      const s = (b.status||'').toLowerCase();
+      return s.includes('连载中') || s.includes('còn tiếp');
+    }
+    if (uploadingFilter === 'completed') {
+      const s = (b.status||'').toLowerCase();
+      return s.includes('已完结') || s.includes('hoàn thành');
+    }
+    return true;
+  });
+  const s = document.getElementById('trans-sort')?.value || 'default';
+  if (s === 'title_asc')    arr.sort((a,b) => (a.vi_title||'').localeCompare(b.vi_title||'', 'vi'));
+  if (s === 'title_desc')   arr.sort((a,b) => (b.vi_title||'').localeCompare(a.vi_title||'', 'vi'));
+  if (s === 'ahead_desc')   arr.sort((a,b) => ((b.fanqie_chapters||0)-(b.uploaded_chapters||0))-((a.fanqie_chapters||0)-(a.uploaded_chapters||0)));
+  if (s === 'ahead_asc')    arr.sort((a,b) => ((a.fanqie_chapters||0)-(a.uploaded_chapters||0))-((b.fanqie_chapters||0)-(b.uploaded_chapters||0)));
+  if (s === 'fanqie_asc')   arr.sort((a,b) => (a.fanqie_chapters||0)-(b.fanqie_chapters||0));
+  if (s === 'fanqie_desc')  arr.sort((a,b) => (b.fanqie_chapters||0)-(a.fanqie_chapters||0));
+  if (s === 'uploaded_asc') arr.sort((a,b) => (a.uploaded_chapters||0)-(b.uploaded_chapters||0));
+  if (s === 'uploaded_desc') arr.sort((a,b) => (b.uploaded_chapters||0)-(a.uploaded_chapters||0));
+  if (s === 'status_asc')   arr.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+  if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
+  if (s === 'updated_asc')  arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
+  return arr;
+}
+
+// ── RENDER WAITING ──────────────────────────────────────────
+function renderWaiting() {
+  updateSortHeaders('waiting', WAITING_SORT_MAP, 'waiting-sort');
+  const tbody = document.getElementById('waiting-tbody');
+  const arr = sortedWaiting();
+  setSearchCount('waiting', arr.length, waitingList.length);
+
+  let anyReady = false, anyUrgent = false;
+  if (!arr.length) {
+    const msg = searchWaiting
+      ? `No results for "<strong>${esc(searchWaiting)}</strong>"`
+      : 'No books in waiting list';
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">${searchWaiting?'🔍':'📋'}</div>${msg}</div></td></tr>`;
+    updateBadges(); return;
+  }
+
+  tbody.innerHTML = arr.map(book => {
+    const chReady = (book.current_chapters||0) >= (book.desired_chapters||0);
+    if (chReady) anyReady = true;
+    const dDays = daysUntilDeadline(book.desired_date);
+    if (dDays !== null && dDays <= 3) anyUrgent = true;
+    const readyTag = chReady
+      ? '<span class="tag tag-green">✓ READY</span>'
+      : `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${book.desired_chapters}</span>`;
+    const chPct = Math.min(100, Math.round(((book.current_chapters||0)/(book.desired_chapters||1))*100));
+    const fillCls = chPct>=100?'progress-fill':chPct>=70?'progress-fill warn':'progress-fill danger';
+
+    const titleHtml = hl(book.vi_title||'', searchWaiting) || '<em style="color:var(--text3)">Chưa có tên</em>';
+    const idHtml = hl(book.fanqie_id||'', searchWaiting);
+    const titleLink = book.wiki_id
+      ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link">${titleHtml}</a>`
+      : titleHtml;
+
+    return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
+      <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('waiting','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
+      <td class="title-cell">
+        <div class="title-main">${titleLink}</div>
+        <div class="title-id"><a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link">${idHtml}</a></div>
+      </td>
+      <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
+      <td class="mono">${book.desired_chapters}</td>
+      <td>${fmtStatus(book.status)}</td>
+      <td>${fmtDate(book.last_updated, book.status)}</td>
+      <td>${fmtDeadline(book.desired_date)}</td>
+      <td>${readyTag}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('waiting-ready-banner').style.display = anyReady ? 'flex' : 'none';
+  document.getElementById('waiting-deadline-banner').style.display = anyUrgent ? 'flex' : 'none';
+  requestAnimationFrame(updateTheadTop);
+  updateSelectionUI(); updateBadges();
+}
+
+// ── RENDER UPLOADING ─────────────────────────────────────────
+function renderUploading() {
+  updateSortHeaders('uploading', TRANS_SORT_MAP, 'trans-sort');
+  const tbody = document.getElementById('uploading-tbody');
+  const arr = sortedUploading();
+  setSearchCount('uploading', arr.length, uploadingList.length);
+
+  if (!arr.length) {
+    const msg = searchUploading
+      ? `No results for "<strong>${esc(searchUploading)}</strong>"`
+      : 'No books in uploading list';
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">${searchUploading?'🔍':'✍️'}</div>${msg}</div></td></tr>`;
+    updateBadges(); return;
+  }
+
+  tbody.innerHTML = arr.map(book => {
+    const wikiId = book.wiki_id ? book.wiki_id.replace(/~/g,'%7E') : null;
+
+    const displayVal = pendingUpdates.has(book.fanqie_id) ? pendingUpdates.get(book.fanqie_id) : (book.uploaded_chapters||0);
+    const isPending = pendingUpdates.has(book.fanqie_id);
+    const safeTitle = esc(book.vi_title || book.fanqie_id);
+
+    const titleHtml = hl(book.vi_title||'', searchUploading) || '<em style="color:var(--text3)">Chưa có tên</em>';
+    const idHtml = hl(book.fanqie_id||'', searchUploading);
+
+    const warns = getWarnTags(book);
+    const isStale = warns.some(t => t.includes('Stale'));
+    const isBehind = warns.some(t => t.includes('📚'));
+    const rowStyle = isStale ? 'background:rgba(214,48,48,0.05);' : isBehind ? 'background:rgba(124,92,252,0.05);' : '';
+
+    return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}" style="${rowStyle}">
+      <td class="check-col"><input type="checkbox" tabindex="-1" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('uploading','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
+      <td class="title-cell">
+        <div class="title-main" title="${safeTitle}">${titleHtml}</div>
+        <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${idHtml}</a></div>
+      </td>
+      <td class="mono">${book.fanqie_chapters||'?'}</td>
+      <td class="mono">${book.uploaded_chapters||0}</td>
+      <td>
+        <div class="inline-update-wrap">
+          <input type="number" class="inline-ch-input${isPending?' pending':''}"
+            data-fid="${esc(book.fanqie_id)}" value="${displayVal}" min="0"
+            title="Update uploaded chapters for: ${safeTitle}"
+            oninput="onInlineInput('${esc(book.fanqie_id)}', this.value)" />
+        </div>
+      </td>
+      <td>${aheadBadge(book.fanqie_chapters, book.uploaded_chapters)}</td>
+      <td>${fmtStatus(book.status)}</td>
+      <td>${fmtDate(book.last_updated, book.status)}</td>
+    </tr>`;
+  }).join('');
+  updateSelectionUI(); updateBadges();
+}
+
+// ── RENDER CHANGED ──────────────────────────────────────────
+function sortedChanged() {
+  let arr = uploadingList.filter(b => isChangedBook(b) && matchChangedFilter(b));
+  const s = document.getElementById('changed-sort')?.value || 'default';
+  if (s === 'title_asc')    arr.sort((a,b) => (a.vi_title||'').localeCompare(b.vi_title||'', 'vi'));
+  if (s === 'title_desc')   arr.sort((a,b) => (b.vi_title||'').localeCompare(a.vi_title||'', 'vi'));
+  if (s === 'ahead_desc')   arr.sort((a,b) => ((b.fanqie_chapters||0)-(b.uploaded_chapters||0))-((a.fanqie_chapters||0)-(a.uploaded_chapters||0)));
+  if (s === 'ahead_asc')    arr.sort((a,b) => ((a.fanqie_chapters||0)-(a.uploaded_chapters||0))-((b.fanqie_chapters||0)-(b.uploaded_chapters||0)));
+  if (s === 'fanqie_asc')   arr.sort((a,b) => (a.fanqie_chapters||0)-(b.fanqie_chapters||0));
+  if (s === 'fanqie_desc')  arr.sort((a,b) => (b.fanqie_chapters||0)-(a.fanqie_chapters||0));
+  if (s === 'uploaded_asc') arr.sort((a,b) => (a.uploaded_chapters||0)-(b.uploaded_chapters||0));
+  if (s === 'uploaded_desc') arr.sort((a,b) => (b.uploaded_chapters||0)-(a.uploaded_chapters||0));
+  if (s === 'status_asc')   arr.sort((a,b) => (a.status||'').localeCompare(b.status||''));
+  if (s === 'updated_desc') arr.sort((a,b) => (b.last_updated||'').localeCompare(a.last_updated||''));
+  if (s === 'updated_asc')  arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
+  return arr;
+}
+
+function renderChanged() {
+  updateSortHeaders('changed', CHANGED_SORT_MAP, 'changed-sort');
+  const tbody = document.getElementById('changed-tbody');
+  const arr = sortedChanged();
+  if (!arr.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">✅</div>No alerts</div></td></tr>`;
+    updateBadges(); return;
+  }
+  tbody.innerHTML = arr.map(book => `<tr class="${selectedChanged.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
+    <td class="check-col"><input type="checkbox" ${selectedChanged.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('changed','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('changed','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
+    <td class="title-cell">
+      <div class="title-main">${esc(book.vi_title||'—')}</div>
+      <div class="title-id">${book.wiki_id ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'} · <a href="${CFG.fanqie_url}${esc(book.fanqie_id)}" target="_blank" class="link" tabindex="-1">${esc(book.fanqie_id)}</a></div>
+    </td>
+    <td class="mono">${book.fanqie_chapters||'?'}</td>
+    <td class="mono">${book.uploaded_chapters||0}</td>
+    <td>${aheadBadge(book.fanqie_chapters, book.uploaded_chapters)}</td>
+    <td>${fmtStatus(book.status)}</td>
+    <td>${fmtDate(book.last_updated, book.status)}</td>
+    <td><div class="warn-tags">${getWarnTags(book).join('')}</div></td>
+  </tr>`).join('');
+  updateSelectionUI(); updateBadges();
+}
+
+function setChangedFilter(f) {
+  changedFilter = f;
+  document.querySelectorAll('#changed-filters .pill').forEach(p => p.classList.toggle('active', p.dataset.filter===f));
+  renderChanged();
+}
+
+function setUploadingFilter(f) {
+  uploadingFilter = f;
+  document.querySelectorAll('#uploading-filters .pill').forEach(p => p.classList.toggle('active', p.dataset.filter===f));
+  renderUploading();
+}
+
+function renderAll() { renderWaiting(); renderUploading(); renderChanged(); updateBadges(); requestAnimationFrame(updateTheadTop); }
+
+function updateBadges() {
+  document.getElementById('waiting-count-badge').textContent = waitingList.length||'';
+  document.getElementById('trans-count-badge').textContent = uploadingList.length||'';
+}
+
+// ── SELECTION ───────────────────────────────────────────────
+let lastClickedId = { waiting: null, uploading: null, changed: null };
+
+function toggleSelect(list, id, checked, event) {
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
+
+  if (event && event.shiftKey && lastClickedId[list]) {
+    const src = list==='waiting'?sortedWaiting():list==='uploading'?sortedUploading():sortedChanged();
+    const ids = src.map(b => b.fanqie_id);
+    const fromIdx = ids.indexOf(lastClickedId[list]);
+    const toIdx = ids.indexOf(id);
+    if (fromIdx !== -1 && toIdx !== -1) {
+      const [start, end] = fromIdx < toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+      for (let i = start; i <= end; i++) set.add(ids[i]);
+    }
+  } else {
+    if (checked) set.add(id); else set.delete(id);
+  }
+
+  lastClickedId[list] = id;
+  updateSelectionUI();
+  if (list==='waiting') renderWaiting(); else if (list==='uploading') renderUploading(); else renderChanged();
+}
+
+function toggleCheckAll(list, checked) {
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
+  const src = list==='waiting'?sortedWaiting():list==='uploading'?sortedUploading():sortedChanged();
+  set.clear();
+  if (checked) src.forEach(b=>set.add(b.fanqie_id));
+  updateSelectionUI();
+  if (list==='waiting') renderWaiting(); else if (list==='uploading') renderUploading(); else renderChanged();
+}
+
+function selectAllVisible(list) {
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
+  const src = list==='waiting'?sortedWaiting():list==='uploading'?sortedUploading():sortedChanged();
+  src.forEach(b=>set.add(b.fanqie_id));
+  updateSelectionUI(); renderAll();
+}
+
+function deselectAll(list) {
+  if (list==='waiting') { selectedWaiting.clear(); renderWaiting(); }
+  else if (list==='uploading') { selectedUploading.clear(); renderUploading(); }
+  else { selectedChanged.clear(); renderChanged(); }
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const wc = selectedWaiting.size;
+  document.getElementById('waiting-sel-count').textContent = `${wc} selected`;
+  document.getElementById('waiting-sel-count').style.display = wc ? 'inline-flex' : 'none';
+  document.getElementById('waiting-desel-btn').style.display = wc ? 'inline-flex' : 'none';
+  document.getElementById('waiting-del-btn').style.display = wc ? 'inline-flex' : 'none';
+  document.getElementById('waiting-promote-btn').style.display = wc ? 'inline-flex' : 'none';
+
+  const tc = selectedUploading.size;
+  document.getElementById('trans-sel-count').textContent = `${tc} selected`;
+  document.getElementById('trans-sel-count').style.display = tc ? 'inline-flex' : 'none';
+  document.getElementById('trans-desel-btn').style.display = tc ? 'inline-flex' : 'none';
+  document.getElementById('trans-del-btn').style.display = tc ? 'inline-flex' : 'none';
+
+  const cc = selectedChanged.size;
+  document.getElementById('changed-sel-count').textContent = `${cc} selected`;
+  document.getElementById('changed-sel-count').style.display = cc ? 'inline-flex' : 'none';
+  document.getElementById('changed-desel-btn').style.display = cc ? 'inline-flex' : 'none';
+  document.getElementById('changed-del-btn').style.display = cc ? 'inline-flex' : 'none';
+}
+
+// ── ADD PANELS ──────────────────────────────────────────────
+function toggleAddPanel(list) {
+  document.getElementById(`add-panel-${list}`).classList.toggle('open');
+  requestAnimationFrame(updateTheadTop);
+}
+
+async function submitAdd(list) {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  const raw = document.getElementById(`${list}-input`).value.trim();
+  if (!raw) { toast('Nothing to add.', 'error'); return; }
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  let added = 0;
+  if (list === 'waiting') {
+    for (const line of lines) {
+      const parts = line.split('|').map(p=>p.trim());
+      if (parts.length < 3) { toast(`Invalid line: ${line}`, 'error'); continue; }
+      const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
+      const desired = parseInt(desired_str);
+      if (!fanqie_id || isNaN(desired)) { toast(`Invalid: ${line}`, 'error'); continue; }
+      if (waitingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Already in waiting: ${fanqie_id}`, 'error'); continue; }
+      let desired_date = null;
+      if (desired_date_raw) {
+        const parsed = parseDesiredDate(desired_date_raw);
+        if (!parsed) { toast(`Invalid date format "${desired_date_raw}" — use DD/MM/YYYY`, 'error'); continue; }
+        const dd = String(parsed.getDate()).padStart(2,'0');
+        const mm = String(parsed.getMonth()+1).padStart(2,'0');
+        desired_date = `${dd}/${mm}/${parsed.getFullYear()}`;
+      }
+      waitingList.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
+      added++;
+    }
+    if (added) { await saveWaiting(); renderWaiting(); document.getElementById('waiting-input').value=''; toggleAddPanel('waiting'); toast(`Added ${added} book(s).`,'success'); }
+  } else {
+    for (const line of lines) {
+      const parts = line.split('|').map(p=>p.trim());
+      if (parts.length < 3) { toast(`Invalid line: ${line}`, 'error'); continue; }
+      const [wiki_id, ch_str, fanqie_id] = parts;
+      const uploaded = parseInt(ch_str);
+      if (!fanqie_id || isNaN(uploaded)) { toast(`Invalid: ${line}`, 'error'); continue; }
+      if (uploadingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Already in uploading: ${fanqie_id}`, 'error'); continue; }
+      uploadingList.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
+      added++;
+    }
+    if (added) { await saveUploading(); renderUploading(); document.getElementById('uploading-input').value=''; toggleAddPanel('uploading'); toast(`Added ${added} book(s).`,'success'); }
+  }
+}
+
+// ── MOVE TO UPLOADING ───────────────────────────────────────
+function openMovePanel() {
+  if (!selectedWaiting.size) return;
+  const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
+  document.getElementById('move-count').textContent = books.length;
+  document.getElementById('move-books-hint').textContent = 'Books: ' + books.map(b=>b.vi_title||b.fanqie_id).join(', ');
+  document.getElementById('move-wiki-input').value = '';
+  document.getElementById('move-panel').classList.add('open');
+}
+
+function closeMovePanel() { document.getElementById('move-panel').classList.remove('open'); }
+
+async function submitMove() {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
+  const wikiLines = document.getElementById('move-wiki-input').value.split('\n');
+  for (let i=0; i<books.length; i++) {
+    const book = books[i];
+    const wiki_id = (wikiLines[i]||'').trim()||null;
+    if (uploadingList.find(b=>b.fanqie_id===book.fanqie_id)) continue;
+    uploadingList.push({ vi_title: book.vi_title, wiki_id, fanqie_id: book.fanqie_id, uploaded_chapters: 0, fanqie_chapters: book.current_chapters, status: book.status, last_updated: book.last_updated });
+    waitingList = waitingList.filter(b=>b.fanqie_id!==book.fanqie_id);
+  }
+  selectedWaiting.clear();
+  await Promise.all([saveWaiting(), saveUploading()]);
+  closeMovePanel(); renderAll();
+  toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
+}
+
+// ── DELETE ──────────────────────────────────────────────────
+function bulkDelete(list) {
+  const set = list==='waiting'?selectedWaiting:list==='uploading'?selectedUploading:selectedChanged;
+  if (!set.size) return;
+  showModal(`Delete ${set.size} book(s)?`, `This will permanently remove them from the ${list} list.`, async () => {
+    if (list==='waiting') {
+      waitingList = waitingList.filter(b=>!set.has(b.fanqie_id));
+      set.clear(); await saveWaiting();
+    } else {
+      uploadingList = uploadingList.filter(b=>!set.has(b.fanqie_id));
+      set.clear(); await saveUploading();
+    }
+    renderAll(); toast('Deleted.', 'success');
+  });
+}
+
+// ── MODAL ───────────────────────────────────────────────────
+let _modalCallback = null;
+function showModal(title, body, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  _modalCallback = onConfirm;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('confirm-modal').classList.remove('open'); }
+document.getElementById('modal-confirm-btn').onclick = async () => { closeModal(); if (_modalCallback) await _modalCallback(); };
+
+// ── TOAST ───────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show '+(type||'');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
+}
+
+// ── INIT ────────────────────────────────────────────────────
+loadConfig();
+if (CFG.repo && CFG.token) loadData(); else switchTab('settings');
+</script>
+</body>
+</html>
