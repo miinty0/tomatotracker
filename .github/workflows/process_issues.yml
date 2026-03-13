@@ -1,28 +1,22 @@
 name: Process Issue Commands
-
 on:
   issues:
     types: [opened]
-
 permissions:
   contents: write
   issues: write
-
 jobs:
   process:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@v6
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
-
+          python-version: '3.13'
       - name: Install dependencies
         run: pip install requests beautifulsoup4
-
       - name: Process issue
         env:
           ISSUE_TITLE: ${{ github.event.issue.title }}
@@ -31,7 +25,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: python scripts/process_issue.py
-
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
@@ -39,7 +32,6 @@ jobs:
           git add waiting_list.json uploading_list.json
           git diff --staged --quiet || git commit -m "chore: update from issue #${{ github.event.issue.number }}"
           git push
-
       - name: Close issue
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
