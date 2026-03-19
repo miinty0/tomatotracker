@@ -25,8 +25,12 @@
     --sans: 'IBM Plex Sans', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; min-height: 100vh; overflow-x: auto; }
-  
+  body { 
+    background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; 
+    min-height: 100vh; overflow-x: auto; 
+    min-width: fit-content; 
+  }
+  header, .toolbar, .alert-banner, .add-panel { min-width: 100%; }
   header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; align-items: center; gap: 16px; height: 44px; position: sticky; top: 0; z-index: 100; }
   header .logo { font-family: var(--mono); font-weight: 600; font-size: 14px; color: var(--accent); letter-spacing: -0.5px; }
   header .logo span { color: var(--text3); }
@@ -45,11 +49,9 @@
   .btn.ghost { border-color: var(--border); color: var(--text3); }
   .btn.ghost:hover { border-color: var(--text2); color: var(--text2); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
   main { padding: 12px 16px; }
   .section { display: none; }
   .section.active { display: block; }
-
   .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 0; flex-wrap: wrap; position: sticky; top: 44px; z-index: 50; background: var(--bg); padding: 8px 0; border-bottom: 1px solid var(--border); }
   .toolbar-left { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
   .toolbar-right { display: flex; align-items: center; gap: 6px; }
@@ -61,39 +63,43 @@
   }
   select:focus, input:focus { border-color: var(--accent); }
   select { cursor: pointer; }
-
-  /* SEARCH  */
+  input[type="number"]::-webkit-inner-spin-button, 
+  input[type="number"]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
   .search-wrap { position: relative; display: inline-flex; align-items: center; }
   .search-icon { position: absolute; left: 8px; color: var(--text3); font-size: 13px; pointer-events: none; line-height: 1; }
   .search-input {
-    padding-left: 26px !important;
-    width: 190px;
+    padding-left: 26px !important; width: 190px;
     transition: border-color 0.15s, width 0.2s !important;
   }
   .search-input:focus { width: 250px; }
   .search-input::placeholder { color: var(--text3); }
   .search-clear {
-    position: absolute; right: 5px;
+    position: absolute; right: 2px;
     background: none; border: none; color: var(--text3);
-    cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 3px;
-    display: none; border-radius: 2px;
+    cursor: pointer; font-size: 16px; line-height: 1; 
+    padding: 6px 8px; display: none; border-radius: 4px;
   }
   .search-clear:hover { color: var(--text2); }
   .search-clear.visible { display: block; }
   .search-result-count { font-family: var(--mono); font-size: 10px; color: var(--text3); white-space: nowrap; display: none; }
   .search-result-count.active { display: inline; color: var(--accent); }
   mark.hl { background: rgba(79,158,255,0.22); color: var(--accent); border-radius: 2px; font-style: normal; }
-
   .add-panel { background: var(--bg); border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; margin-bottom: 0; display: none; position: sticky; top: var(--toolbar-bottom, 88px); z-index: 49; padding: 12px; }
   .add-panel.open { display: block; }
   .add-panel h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-family: var(--mono); }
-  .add-panel textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 4px; font-family: var(--mono); font-size: 11px; resize: vertical; min-height: 80px; outline: none; }
+  .add-panel textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 4px; font-family: var(--mono); font-size: 11px; resize: vertical; min-height: 80px; outline: none; transition: border-color 0.15s; }
   .add-panel textarea:focus { border-color: var(--accent); }
+  .add-panel textarea.pending { border-color: var(--yellow); background: rgba(245,197,66,0.02); }
   .add-panel .hint { font-size: 10px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
   .add-panel .actions { display: flex; gap: 6px; margin-top: 8px; }
-
   .table-wrap { overflow-x: visible; }
-  table { width: 100%; border-collapse: collapse; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; } 
   thead th { background: var(--surface); position: sticky; top: var(--thead-top, 86px); z-index: 10; padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
   thead th:hover { color: var(--text2); }
   thead th .sort-icon { margin-left: 3px; opacity: 0.4; font-style: normal; }
@@ -103,15 +109,13 @@
   tbody tr.selected { background: rgba(79,158,255,0.05); }
   tbody tr.selected:hover { background: rgba(79,158,255,0.08); }
   td { padding: 7px 10px; vertical-align: middle; }
-  td.check-col { width: 32px; }
+  th.check-col, td.check-col { width: 36px !important; min-width: 36px !important; max-width: 36px !important; padding: 7px 10px; }
   input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
-  .title-cell { max-width: 220px; }
   .title-main { font-weight: 500; color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .title-id { font-family: var(--mono); font-size: 10px; color: var(--text3); }
   .mono { font-family: var(--mono); font-size: 11px; }
   .link { color: var(--accent); text-decoration: none; }
   .link:hover { text-decoration: underline; }
-
   .tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
   .tag-green { background: rgba(45,206,122,0.12); color: var(--green); border: 1px solid rgba(45,206,122,0.25); }
   .tag-yellow { background: rgba(245,197,66,0.12); color: var(--yellow); border: 1px solid rgba(245,197,66,0.25); }
@@ -119,36 +123,30 @@
   .tag-blue { background: rgba(79,158,255,0.12); color: var(--accent); border: 1px solid rgba(79,158,255,0.25); }
   .tag-orange { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
   .tag-purple { background: rgba(124,92,252,0.12); color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
-
   .deadline-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--mono); white-space: nowrap; }
-  .deadline-ok { background: rgba(45,206,122,0.10); color: var(--green); border: 1px solid rgba(45,206,122,0.2); }
-  .deadline-soon { background: rgba(245,197,66,0.10); color: var(--yellow); border: 1px solid rgba(245,197,66,0.2); }
-  .deadline-urgent { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
-  .deadline-overdue { background: rgba(255,90,90,0.12); color: var(--red); border: 1px solid rgba(255,90,90,0.25); }
+  .deadline-overdue { background: rgba(45,206,122,0.10); color: var(--green); border: 1px solid rgba(45,206,122,0.2); }
+  .deadline-urgent { background: rgba(245,197,66,0.10); color: var(--yellow); border: 1px solid rgba(245,197,66,0.2); }
+  .deadline-soon { background: rgba(255,140,66,0.12); color: var(--orange); border: 1px solid rgba(255,140,66,0.25); }
+  .deadline-ok { background: rgba(255,90,90,0.12); color: var(--red); border: 1px solid rgba(255,90,90,0.25); }
   .deadline-none { color: var(--text3); font-family: var(--mono); font-size: 11px; }
-
   .warn-tags { display: flex; gap: 3px; flex-wrap: wrap; }
-
   .progress-wrap { display: flex; align-items: center; gap: 6px; }
   .progress-bar { width: 60px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
   .progress-fill.warn { background: var(--orange); }
   .progress-fill.danger { background: var(--red); }
-
   .ahead { font-family: var(--mono); font-size: 11px; font-weight: 600; }
   .ahead.ok { color: var(--green); }
   .ahead.warn { color: var(--yellow); }
   .ahead.danger { color: var(--red); }
-
   .inline-update-wrap { display: flex; align-items: center; gap: 5px; }
   .inline-ch-input {
     width: 68px; padding: 3px 7px; background: var(--bg); border: 1px solid var(--border2);
     border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 11px;
-    outline: none; transition: border-color 0.15s, background 0.15s;
+    outline: none; transition: border-color 0.15s, background 0.15s; text-align: center; 
   }
   .inline-ch-input:focus { border-color: var(--accent); }
   .inline-ch-input.pending { border-color: var(--yellow); background: rgba(245,197,66,0.06); color: var(--yellow); }
-
   #inline-save-bar {
     position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
     border-top: 2px solid var(--yellow); padding: 10px 16px; display: none; z-index: 200;
@@ -157,26 +155,22 @@
   #inline-save-bar.open { display: block; }
   @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   #inline-save-bar .inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  #inline-save-bar .hint { font-size: 11px; color: var(--yellow); font-family: var(--mono); }
+  #inline-save-bar .hint { font-size: 11px; color: var(--text2); font-family: var(--mono); }
   #inline-save-bar .hint strong { color: var(--text); }
-
   #move-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border2); padding: 10px 16px; display: none; z-index: 200; box-shadow: 0 -4px 24px rgba(0,0,0,0.4); }
   #move-panel.open { display: block; }
   #move-panel .inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #move-panel label { font-size: 12px; color: var(--text2); font-weight: 500; }
   #move-panel textarea { width: 300px; min-height: 60px; font-family: var(--mono); font-size: 11px; }
   #move-panel .hint { font-size: 10px; color: var(--text3); font-family: var(--mono); }
-
   .empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 12px; }
   .empty .icon { font-size: 28px; margin-bottom: 8px; }
-
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; display: none; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
   .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 20px; min-width: 340px; max-width: 500px; }
   .modal h3 { font-size: 14px; margin-bottom: 12px; }
   .modal p { color: var(--text2); font-size: 12px; margin-bottom: 16px; }
   .modal .actions { display: flex; gap: 8px; justify-content: flex-end; }
-
   .filter-pills { display: flex; gap: 4px; }
   .pill { padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border2); font-size: 11px; color: var(--text2); cursor: pointer; font-weight: 500; transition: all 0.15s; }
   .pill:hover { border-color: var(--accent); color: var(--accent); }
@@ -187,18 +181,14 @@
   .pill-orange { color: var(--orange); border-color: rgba(255,140,66,0.35); }
   .pill-orange:hover { border-color: var(--orange) !important; color: var(--orange) !important; }
   .pill-orange.active { background: rgba(255,140,66,0.12); border-color: var(--orange); color: var(--orange); }
-
   .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
-
   #toast { position: fixed; bottom: 70px; right: 16px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 14px; font-size: 12px; z-index: 400; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 300px; }
   #toast.show { display: block; animation: fadeIn 0.2s; }
   #toast.success { border-color: var(--green); }
   #toast.error { border-color: var(--red); }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
   .alert-banner { background: rgba(245,197,66,0.08); border: 1px solid rgba(245,197,66,0.25); border-radius: 5px; padding: 8px 12px; margin-bottom: 0; font-size: 11px; color: var(--yellow); display: flex; align-items: center; gap: 6px; position: sticky; top: var(--toolbar-bottom, 88px); z-index: 48; }
-
   #token-setup, #url-setup { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
   #token-setup h4, #url-setup h4 { font-size: 12px; margin-bottom: 8px; color: var(--text2); }
   #token-setup .note, #url-setup .note { font-size: 10px; color: var(--text3); margin-top: 6px; font-family: var(--mono); }
@@ -206,20 +196,25 @@
   .config-row label { font-size: 11px; color: var(--text2); white-space: nowrap; min-width: 80px; }
   .config-row input { flex: 1; min-width: 160px; font-family: var(--mono); font-size: 11px; }
   hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
-
+  th#wth-title, th#uth-title { min-width: 200px; }
+  th#wth-chapters, th#uth-fanqie, th#uth-uploaded { min-width: 90px; }
+  th#wth-deadline { min-width: 110px; } 
+  .resizer {
+    position: absolute; top: 0; right: 0; width: 5px; height: 100%;
+    cursor: col-resize; user-select: none; background-color: transparent;
+    transition: background-color 0.2s; z-index: 1;
+  }
+  .resizer:hover, .resizer.resizing { background-color: var(--accent); }
   @media (max-width: 768px) {
-    .toolbar-left, .toolbar-right {
-      width: 100%;
-      justify-content: flex-start;
-    }
+    .toolbar-left, .toolbar-right { width: 100%; justify-content: flex-start; }
     .search-input { width: 140px; }
     .search-input:focus { width: 180px; }
-    }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    thead th { top: 0 !important; }
   }
 </style>
 </head>
 <body>
-
 <header>
   <div class="logo">🍅<span>/</span>tracker</div>
   <div class="tab-bar">
@@ -233,9 +228,7 @@
     <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span> Refresh</button>
   </div>
 </header>
-
 <main>
-
 <div class="section" id="section-settings">
   <div id="token-setup">
     <h4>GitHub Configuration</h4>
@@ -268,7 +261,6 @@
     <div class="note">Base URLs for links. Trailing slash required.</div>
   </div>
 </div>
-
 <div class="section" id="section-waiting">
   <div class="toolbar">
     <div class="toolbar-left">
@@ -306,38 +298,37 @@
   </div>
   <div class="add-panel" id="add-panel-waiting">
     <h4>Add to Waiting List — Bulk</h4>
-    <textarea id="waiting-input" placeholder="Tên tiếng Việt | số chương mong muốn | 🍅 Book ID | ngày mong muốn (DD/MM/YYYY, tùy chọn)&#10;Ví dụ:&#10;Xuyên thành nông gia | 300 | 7506507753850948633 | 28/02/2026"></textarea>
-    <div class="hint">Format: Vietnamese Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
+    <textarea id="waiting-input"oninput="updateSaveBar()"></textarea>
+    <div class="hint">Format: Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
     <div class="actions">
-      <button class="btn primary" onclick="submitAdd('waiting')">Add Books</button>
-      <button class="btn" onclick="toggleAddPanel('waiting')">Cancel</button>
+      <button class="btn primary" onclick="submitInlineUpdates()">Save & Add Books</button>
+      <button class="btn" onclick="document.getElementById('add-panel-waiting').classList.remove('open'); document.getElementById('waiting-input').value=''; updateSaveBar();">Cancel</button>
     </div>
   </div>
   <div id="waiting-ready-banner" class="alert-banner" style="display:none">
-    ⚠️ Some books have reached their desired chapter count — select and move them to Uploading.
+    🟢️ Truyện đã đạt đủ số chương mong muốn. Check lại wiki xem có thay đổi gì không.
   </div>
-  <div id="waiting-deadline-banner" class="alert-banner" style="display:none;border-color:rgba(255,90,90,0.4);background:rgba(255,90,90,0.06);color:var(--red);">
-    🔴 Some books are overdue or due very soon!
+  <div id="waiting-deadline-banner" class="alert-banner" style="display:none;">
+    🟢️ Truyện đã đạt đủ số ngày mong muốn. Check lại wiki xem có thay đổi gì không.
   </div>
   <div class="table-wrap">
     <table id="waiting-table">
       <thead>
         <tr>
           <th class="check-col"><input type="checkbox" id="waiting-check-all" onchange="toggleCheckAll('waiting', this.checked)"></th>
-          <th id="wth-title" onclick="setSortWaiting('title')">Title <span class="sort-icon">↕</span></th>
-          <th id="wth-chapters" onclick="setSortWaiting('current_chapters')">Chapters <span class="sort-icon">↕</span></th>
-          <th>Desired Ch.</th>
-          <th id="wth-status" onclick="setSortWaiting('status')">Status <span class="sort-icon">↕</span></th>
-          <th id="wth-updated" onclick="setSortWaiting('last_updated')">Last Update <span class="sort-icon">↕</span></th>
-          <th id="wth-deadline" onclick="setSortWaiting('desired_date')">Desired Date <span class="sort-icon">↕</span></th>
-          <th>Ready?</th>
+          <th id="wth-title" onclick="setSortWaiting('title')">📖 <span class="sort-icon">↕</span></th>
+          <th id="wth-chapters" onclick="setSortWaiting('current_chapters')">🍅 <span class="sort-icon">↕</span></th>
+          <th>💗 Ch.</th>
+          <th id="wth-status" onclick="setSortWaiting('status')">🏷️<span class="sort-icon">↕</span></th>
+          <th id="wth-updated" onclick="setSortWaiting('last_updated')">📅<span class="sort-icon">↕</span></th>
+          <th id="wth-deadline" onclick="setSortWaiting('desired_date')">💗 Date<span class="sort-icon">↕</span></th>
+          <th>🟢?</th>
         </tr>
       </thead>
       <tbody id="waiting-tbody"></tbody>
     </table>
   </div>
 </div>
-
 <div class="section" id="section-uploading">
   <div class="toolbar">
     <div class="toolbar-left">
@@ -380,11 +371,11 @@
   </div>
   <div class="add-panel" id="add-panel-uploading">
     <h4>Add Directly to Uploading List — Bulk</h4>
-    <textarea id="uploading-input" placeholder="💙 Book ID | uploaded chapters | 🍅 Book ID&#10;Ví dụ:&#10;aTwMd0bIjhne~Hxh | 45 | 7506507753850948633"></textarea>
+    <textarea id="uploading-input" oninput="updateSaveBar()"></textarea>
     <div class="hint">Format: 💙 Book ID | Uploaded Chapters | 🍅 Book ID (one per line)</div>
     <div class="actions">
-      <button class="btn primary" onclick="submitAdd('uploading')">Add Books</button>
-      <button class="btn" onclick="toggleAddPanel('uploading')">Cancel</button>
+      <button class="btn primary" onclick="submitInlineUpdates()">Save & Add Books</button>
+      <button class="btn" onclick="document.getElementById('add-panel-uploading').classList.remove('open'); document.getElementById('uploading-input').value=''; updateSaveBar();">Cancel</button>
     </div>
   </div>
   <div class="table-wrap">
@@ -392,43 +383,38 @@
       <thead>
         <tr>
           <th class="check-col"><input type="checkbox" id="trans-check-all" onchange="toggleCheckAll('uploading', this.checked)"></th>
-          <th id="uth-title" onclick="setSortTrans('vi_title')">Vietnamese Title <span class="sort-icon">↕</span></th>
-          <th id="uth-fanqie" onclick="setSortTrans('fanqie_chapters')">🍅 Ch. <span class="sort-icon">↕</span></th>
-          <th id="uth-uploaded" onclick="setSortTrans('uploaded_chapters')">Uploaded <span class="sort-icon">↕</span></th>
-          <th>Set Uploaded ✏️</th>
-          <th id="uth-ahead" onclick="setSortTrans('ahead')">Ahead <span class="sort-icon">↕</span></th>
-          <th id="uth-status" onclick="setSortTrans('status')">Status <span class="sort-icon">↕</span></th>
-          <th id="uth-updated" onclick="setSortTrans('last_updated')">Last Update <span class="sort-icon">↕</span></th>
+          <th id="uth-title" onclick="setSortTrans('vi_title')">📖<span class="sort-icon">↕</span></th>
+          <th id="uth-fanqie" onclick="setSortTrans('fanqie_chapters')">🍅<span class="sort-icon">↕</span></th>
+          <th id="uth-uploaded" onclick="setSortTrans('uploaded_chapters')">💙<span class="sort-icon">↕</span></th>
+          <th>✏️</th>
+          <th id="uth-ahead" onclick="setSortTrans('ahead')">➕<span class="sort-icon">↕</span></th>
+          <th id="uth-status" onclick="setSortTrans('status')">🏷️<span class="sort-icon">↕</span></th>
+          <th id="uth-updated" onclick="setSortTrans('last_updated')">📅<span class="sort-icon">↕</span></th>
         </tr>
       </thead>
       <tbody id="uploading-tbody"></tbody>
     </table>
   </div>
 </div>
-
-
 </main>
-
 <div id="inline-save-bar">
   <div class="inner">
-    <span class="hint">✏️ <strong id="pending-count">0</strong> unsaved chapter update(s)</span>
+    <span class="hint" id="pending-count"></span>
     <button class="btn primary" onclick="submitInlineUpdates()">💾 Save All Changes</button>
     <button class="btn ghost" onclick="discardInlineUpdates()">Discard</button>
   </div>
 </div>
-
 <div id="move-panel">
   <div class="inner">
     <label>Moving <strong id="move-count">0</strong> book(s) → Uploading. Add 💙 Book IDs (optional):</label>
     <div>
-      <textarea id="move-wiki-input" placeholder="💙 Book ID (one per line, same order as selected)&#10;Leave blank lines to skip"></textarea>
+      <textarea id="move-wiki-input"></textarea>
       <div class="hint" id="move-books-hint"></div>
     </div>
     <button class="btn primary" onclick="submitMove()">Confirm Move</button>
     <button class="btn" onclick="closeMovePanel()">Cancel</button>
   </div>
 </div>
-
 <div class="modal-overlay" id="confirm-modal">
   <div class="modal">
     <h3 id="modal-title">Confirm Action</h3>
@@ -439,9 +425,7 @@
     </div>
   </div>
 </div>
-
 <div id="toast"></div>
-
 <script>
 //CONFIG & STATE 
 let CFG = { repo: '', token: '', wiki_url: '', fanqie_url: '' };
@@ -450,13 +434,12 @@ let uploadingList = [];
 let selectedWaiting = new Set();
 let selectedUploading = new Set();
 let uploadingFilter = 'all';
-let pendingUpdates = new Map();
-
-// Search state
+let pendingUpdates = new Map(); 
+let pendingWaitingUpdates = new Map(); 
 let searchWaiting = '';
 let searchUploading = '';
-
-//SORT MAPS ─
+let _searchTimer = null; 
+//SORT MAPS 
 const WAITING_SORT_MAP = {
   title:            ['title_asc',    'title_desc'],
   current_chapters: ['chapters_asc', 'chapters_desc'],
@@ -472,22 +455,18 @@ const TRANS_SORT_MAP = {
   status:            ['status_asc',   'status_desc'],
   last_updated:      ['updated_asc',  'updated_desc'],
 };
-
 function setSortWaiting(col) {
   const sel = document.getElementById('waiting-sort');
   const [asc, desc] = WAITING_SORT_MAP[col] || ['default','default'];
   sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
   renderWaiting();
 }
-
 function setSortTrans(col) {
   const sel = document.getElementById('trans-sort');
   const [asc, desc] = TRANS_SORT_MAP[col] || ['default','default'];
   sel.value = (sel.value === asc && asc !== desc) ? desc : asc;
   renderUploading();
 }
-
-
 function updateSortHeaders(table, sortMap, selectId) {
   const val = document.getElementById(selectId)?.value || 'default';
   Object.entries(sortMap).forEach(([col, [asc, desc]]) => {
@@ -503,7 +482,6 @@ function updateSortHeaders(table, sortMap, selectId) {
     if (icon) icon.textContent = isActive ? (val === desc && asc !== desc ? '↓' : '↑') : '↕';
   });
 }
-
 //CONFIG 
 function saveConfig() {
   CFG.repo = document.getElementById('cfg-repo').value.trim();
@@ -518,7 +496,6 @@ function saveConfig() {
   toast('Config saved!', 'success');
   loadData();
 }
-
 function loadConfig() {
   CFG.repo = localStorage.getItem('fq_repo') || '';
   CFG.token = localStorage.getItem('fq_token') || '';
@@ -529,7 +506,6 @@ function loadConfig() {
   if (CFG.wiki_url) document.getElementById('cfg-wiki-url').value = CFG.wiki_url;
   if (CFG.fanqie_url) document.getElementById('cfg-fanqie-url').value = CFG.fanqie_url;
 }
-
 async function testConfig() {
   if (!CFG.repo || !CFG.token) { toast('Save config first.', 'error'); return; }
   try {
@@ -537,7 +513,6 @@ async function testConfig() {
     toast(`Connected: ${r.full_name}`, 'success');
   } catch(e) { toast('Connection failed: ' + e.message, 'error'); }
 }
-
 //GITHUB API 
 async function ghApi(path, options = {}) {
   const res = await fetch(`https://api.github.com${path}`, {
@@ -556,20 +531,17 @@ async function ghApi(path, options = {}) {
   if (res.status === 204 || res.headers.get('content-length') === '0') return {};
   return res.json();
 }
-
 function b64ToUtf8(b64) {
   const binary = atob(b64.replace(/\n/g, ''));
   const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
   return new TextDecoder('utf-8').decode(bytes);
 }
-
 function utf8ToB64(str) {
   const bytes = new TextEncoder().encode(str);
   let binary = '';
   bytes.forEach(b => binary += String.fromCharCode(b));
   return btoa(binary);
 }
-
 async function getFile(filename) {
   try {
     const data = await ghApi(`/repos/${CFG.repo}/contents/${filename}`);
@@ -580,14 +552,12 @@ async function getFile(filename) {
     throw e;
   }
 }
-
 async function putFile(filename, content, sha) {
   const body = { message: `Update ${filename} via web UI`, content: utf8ToB64(JSON.stringify(content, null, 2)) };
   if (sha) body.sha = sha;
   return ghApi(`/repos/${CFG.repo}/contents/${filename}`, { method: 'PUT', body: JSON.stringify(body) });
 }
-
-//LOAD DATA ─
+//LOAD DATA 
 async function loadData() {
   if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
   document.getElementById('refresh-icon').className = 'spinner';
@@ -597,6 +567,7 @@ async function loadData() {
     uploadingList = t.data;
     document.getElementById('sync-info').textContent = 'synced ' + new Date().toLocaleTimeString();
     pendingUpdates.clear();
+    pendingWaitingUpdates.clear();
     updateSaveBar();
     renderAll();
     toast('Data loaded.', 'success');
@@ -607,41 +578,33 @@ async function loadData() {
     document.getElementById('refresh-icon').textContent = '↻';
   }
 }
-
 async function saveWaiting() {
   const { sha } = await getFile('waiting_list.json');
   await putFile('waiting_list.json', waitingList, sha);
 }
-
 async function saveUploading() {
   const { sha } = await getFile('uploading_list.json');
   await putFile('uploading_list.json', uploadingList, sha);
 }
-
-//SCRAPER
-let _scraperTimer = null;
+//SCRAPER 
 async function triggerScraper(mode) {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const btnId = mode === 'completed' ? 'scrape-btn-completed' : 'scrape-btn-auto';
   const label = mode === 'completed' ? '▶ Completed' : '▶ Ongoing';
   const btn = document.getElementById(btnId);
-  
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Triggering…';
-  
   try {
     await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
       method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { mode } })
     });
-    toast(`Scraper [${mode}] triggered thành công!`, 'success'); 
-    setTimeout(() => { btn.disabled = false; btn.innerHTML = label; }, 3000); 
-    
+    toast(`Scraper [${mode}] triggered thành công!`, 'success');
+    setTimeout(() => { btn.disabled = false; btn.innerHTML = label; }, 3000);
   } catch(e) {
     toast('Failed to trigger: ' + e.message, 'error');
     btn.disabled = false; btn.innerHTML = label;
   }
 }
-
 //TABS 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => {
@@ -651,7 +614,6 @@ function switchTab(tab) {
   document.getElementById('section-' + tab).classList.add('active');
   updateTheadTop();
 }
-
 function updateTheadTop() {
   const headerH = document.querySelector('header')?.offsetHeight || 44;
   const section = document.querySelector('.section.active');
@@ -675,7 +637,6 @@ setTimeout(() => {
   });
 }, 100);
 window.addEventListener('resize', updateTheadTop);
-
 //DATE HELPERS 
 function parseDesiredDate(str) {
   if (!str) return null;
@@ -689,14 +650,12 @@ function parseDesiredDate(str) {
   if (!d || !m || !y) return null;
   return new Date(y, m - 1, d);
 }
-
 function daysUntilDeadline(dateStr) {
   const target = parseDesiredDate(dateStr);
   if (!target) return null;
   const today = new Date(); today.setHours(0,0,0,0);
   return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
-
 function fmtDeadline(dateStr) {
   if (!dateStr) return '<span class="deadline-none">—</span>';
   const days = daysUntilDeadline(dateStr);
@@ -705,65 +664,51 @@ function fmtDeadline(dateStr) {
   const dd = String(target.getDate()).padStart(2,'0');
   const mm = String(target.getMonth()+1).padStart(2,'0');
   const display = `${dd}/${mm}/${target.getFullYear()}`;
-  if (days < 0)  return `<span class="deadline-badge deadline-overdue">🔴 ${display} (${Math.abs(days)}d overdue)</span>`;
-  if (days === 0) return `<span class="deadline-badge deadline-urgent">🔴 TODAY</span>`;
-  if (days <= 3) return `<span class="deadline-badge deadline-urgent">🔴 ${display} (${days}d left)</span>`;
-  if (days <= 7) return `<span class="deadline-badge deadline-soon">🟡 ${display} (${days}d left)</span>`;
-  return `<span class="deadline-badge deadline-ok">🟢 ${display} (${days}d left)</span>`;
+  if (days < 0)  return `<span class="deadline-badge deadline-overdue">🟢 ${display} (${Math.abs(days)}d overdue)</span>`;
+  if (days === 0) return `<span class="deadline-badge deadline-urgent">🟢 TODAY</span>`;
+  if (days <= 3) return `<span class="deadline-badge deadline-soon">🟡 ${display} (${days}d left)</span>`;
+  return `<span class="deadline-badge deadline-ok">${display} (${days}d left)</span>`;
 }
-
 //SEARCH HELPERS 
 function removeAccents(str) {
   if (!str) return '';
-  return str.normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 }
 function esc(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function bookMatchesSearch(book, q) {
   if (!q) return true;
-  // Đưa cả từ khóa và dữ liệu về dạng không dấu, chữ thường để so sánh
   const lq = removeAccents(q.toLowerCase());
   const title = removeAccents((book.vi_title||'').toLowerCase());
   const id = removeAccents((book.fanqie_id||'').toLowerCase());
-  
   return title.includes(lq) || id.includes(lq);
 }
-
-/** Highlight query match in plain text, returning safe HTML */
 function hl(text, q) {
   const safe = esc(text);
   if (!q || !text) return safe;
-  
   const normText = removeAccents(text.toLowerCase());
   const normQ = removeAccents(q.toLowerCase());
-  
   const i = normText.indexOf(normQ);
   if (i === -1) return safe;
-  
-  return esc(text.slice(0, i)) + 
-         `<mark class="hl">${esc(text.slice(i, i + q.length))}</mark>` + 
-         esc(text.slice(i + q.length));
+  return esc(text.slice(0, i)) + `<mark class="hl">${esc(text.slice(i, i + q.length))}</mark>` + esc(text.slice(i + q.length));
 }
-
 function onSearch(list) {
   const val = document.getElementById(`${list}-search`).value;
   const clearBtn = document.getElementById(`${list}-search-clear`);
   clearBtn.classList.toggle('visible', val.length > 0);
-  if (list === 'waiting') { searchWaiting = val; renderWaiting(); }
-  else { searchUploading = val; renderUploading(); }
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    if (list === 'waiting') { searchWaiting = val; renderWaiting(); }
+    else { searchUploading = val; renderUploading(); }
+  }, 300);
 }
-
 function clearSearch(list) {
   document.getElementById(`${list}-search`).value = '';
   document.getElementById(`${list}-search-clear`).classList.remove('visible');
   if (list === 'waiting') { searchWaiting = ''; renderWaiting(); }
   else { searchUploading = ''; renderUploading(); }
 }
-
 function setSearchCount(list, shown, total) {
   const el = document.getElementById(`${list}-search-count`);
   const q = list === 'waiting' ? searchWaiting : searchUploading;
@@ -771,13 +716,10 @@ function setSearchCount(list, shown, total) {
   el.className = 'search-result-count active';
   el.textContent = `${shown} / ${total} match`;
 }
-
-//COPY LINK 
 function copyFanqieLink(fanqieId) {
   const url = CFG.fanqie_url + fanqieId;
   navigator.clipboard.writeText(url).then(() => toast('Đã copy link 🍅', 'success')).catch(() => toast('Copy thất bại', 'error'));
 }
-
 //RENDER HELPERS 
 function fmtStatus(status) {
   if (!status) return '<span class="tag tag-blue">—</span>';
@@ -786,12 +728,10 @@ function fmtStatus(status) {
   if (status.includes('已删除')) return '<span class="tag tag-red">Đã xóa</span>';
   return `<span class="tag tag-blue">${esc(status)}</span>`;
 }
-
 function daysSince(dateStr) {
   if (!dateStr) return 9999;
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
-
 function fmtDate(dateStr, status) {
   if (!dateStr) return '<span style="color:var(--text3)">—</span>';
   const d = daysSince(dateStr);
@@ -800,14 +740,12 @@ function fmtDate(dateStr, status) {
   const cls = (!isCompleted && d >= 15) ? 'color:var(--red)' : (!isCompleted && d >= 7) ? 'color:var(--yellow)' : 'color:var(--text2)';
   return `<span style="${cls}" class="mono">${dateStr.slice(0,10)}</span>`;
 }
-
 function aheadBadge(fanqie_ch, uploaded_ch) {
   const diff = (fanqie_ch||0) - (uploaded_ch||0);
   if (diff <= 0) return `<span class="ahead ok">0</span>`;
   const cls = diff >= 11 ? 'danger' : diff >= 5 ? 'warn' : 'ok';
   return `<span class="ahead ${cls}">+${diff}</span>`;
 }
-
 function getWarnTags(book) {
   const tags = [];
   const status = (book.status||'').toLowerCase();
@@ -819,48 +757,165 @@ function getWarnTags(book) {
     tags.push('<span class="tag tag-purple">📚 +'+ahead+' ch</span>');
   return tags;
 }
-
-
-//INLINE UPDATES 
 function onInlineInput(fanqieId, rawVal) {
   const book = uploadingList.find(b => b.fanqie_id === fanqieId);
   if (!book) return;
-  const val = parseInt(rawVal);
-  if (!isNaN(val) && val !== book.uploaded_chapters) pendingUpdates.set(fanqieId, val);
+  const val = Math.max(0, parseInt(rawVal) || 0); 
+  if (val !== book.uploaded_chapters) pendingUpdates.set(fanqieId, val);
   else pendingUpdates.delete(fanqieId);
-  const input = document.querySelector(`.inline-ch-input[data-fid="${fanqieId}"]`);
+  const input = document.querySelector(`.inline-ch-input[data-fid="${esc(fanqieId)}"]`);
   if (input) input.classList.toggle('pending', pendingUpdates.has(fanqieId));
   updateSaveBar();
 }
-
-function updateSaveBar() {
-  const n = pendingUpdates.size;
-  document.getElementById('pending-count').textContent = n;
-  document.getElementById('inline-save-bar').classList.toggle('open', n > 0);
+function onWaitingInlineInput(fanqieId, field, rawVal) {
+  const book = waitingList.find(b => b.fanqie_id === fanqieId);
+  if (!book) return;
+  let currentPending = pendingWaitingUpdates.get(fanqieId) || {};
+  if (field === 'chapters') {
+    const val = Math.max(0, parseInt(rawVal) || 0);
+    if (val === (book.desired_chapters || 0)) {
+      delete currentPending.desired_chapters;
+    } else {
+      currentPending.desired_chapters = val;
+    }
+  } else if (field === 'date') {
+    const val = rawVal.trim();
+    if (val === (book.desired_date || '')) {
+      delete currentPending.desired_date;
+    } else {
+      currentPending.desired_date = val;
+    }
+  }
+  if (Object.keys(currentPending).length > 0) {
+    pendingWaitingUpdates.set(fanqieId, currentPending);
+  } else {
+    pendingWaitingUpdates.delete(fanqieId);
+  }
+  const input = document.querySelector(`.inline-ch-input[data-fid="${esc(fanqieId)}"][data-field="${field}"]`);
+  if (input) input.classList.toggle('pending', currentPending[field] !== undefined);
+  updateSaveBar();
 }
-
+// SAVING BUTTON
+function updateSaveBar() {
+  const wRaw = document.getElementById('waiting-input')?.value.trim();
+  const tRaw = document.getElementById('uploading-input')?.value.trim();
+  const addedW = wRaw ? wRaw.split('\n').filter(l=>l.trim()).length : 0;
+  const addedT = tRaw ? tRaw.split('\n').filter(l=>l.trim()).length : 0;
+  const totalAdd = addedW + addedT;
+  const n = pendingUpdates.size + pendingWaitingUpdates.size;
+  let msg = [];
+  if (n > 0) msg.push(`✏️ <strong>${n}</strong> unsaved update(s)`);
+  if (totalAdd > 0) msg.push(`➕ <strong>${totalAdd}</strong> book(s) to add`);
+  const countEl = document.getElementById('pending-count');
+  if (countEl) countEl.innerHTML = msg.join(' | ');
+  document.getElementById('inline-save-bar').classList.toggle('open', n > 0 || totalAdd > 0);
+  const wEl = document.getElementById('waiting-input');
+  if (wEl) wEl.classList.toggle('pending', addedW > 0);
+  const tEl = document.getElementById('uploading-input');
+  if (tEl) tEl.classList.toggle('pending', addedT > 0);
+}
 async function submitInlineUpdates() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  if (!pendingUpdates.size) return;
-  pendingUpdates.forEach((val, id) => {
-    const book = uploadingList.find(b => b.fanqie_id === id);
-    if (book) book.uploaded_chapters = val;
-  });
-  const count = pendingUpdates.size;
-  pendingUpdates.clear();
+  let savedTrans = false;
+  let savedWait = false;
+  let addedW = 0, addedT = 0;
+  let updatedCount = 0;
+  // 1. Quét dữ liệu từ ô "Add Books" của Waiting
+  const wInput = document.getElementById('waiting-input');
+  const wRaw = wInput ? wInput.value.trim() : '';
+  if (wRaw) {
+    const lines = wRaw.split('\n').map(l=>l.trim()).filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split('|').map(p=>p.trim());
+      if (parts.length < 3) { toast(`Bỏ qua dòng lỗi: ${line}`, 'error'); continue; }
+      const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
+      const desired = parseInt(desired_str);
+      if (!fanqie_id || isNaN(desired)) { toast(`Lỗi định dạng: ${line}`, 'error'); continue; }
+      if (waitingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
+      let desired_date = null;
+      if (desired_date_raw) {
+        const parsed = parseDesiredDate(desired_date_raw);
+        if (parsed) {
+          const dd = String(parsed.getDate()).padStart(2,'0');
+          const mm = String(parsed.getMonth()+1).padStart(2,'0');
+          desired_date = `${dd}/${mm}/${parsed.getFullYear()}`;
+        }
+      }
+      waitingList.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
+      addedW++;
+    }
+    wInput.value = '';
+    document.getElementById('add-panel-waiting').classList.remove('open');
+    if (addedW > 0) savedWait = true;
+  }
+  // 2. Quét dữ liệu từ ô "Add Books" của Uploading
+  const tInput = document.getElementById('uploading-input');
+  const tRaw = tInput ? tInput.value.trim() : '';
+  if (tRaw) {
+    const lines = tRaw.split('\n').map(l=>l.trim()).filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split('|').map(p=>p.trim());
+      if (parts.length < 3) { toast(`Bỏ qua dòng lỗi: ${line}`, 'error'); continue; }
+      const [wiki_id, ch_str, fanqie_id] = parts;
+      const uploaded = parseInt(ch_str);
+      if (!fanqie_id || isNaN(uploaded)) { toast(`Lỗi định dạng: ${line}`, 'error'); continue; }
+      if (uploadingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
+      uploadingList.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
+      addedT++;
+    }
+    tInput.value = '';
+    document.getElementById('add-panel-uploading').classList.remove('open');
+    if (addedT > 0) savedTrans = true;
+  }
+  // 3. Quét các ô sửa số chương Uploading
+  if (pendingUpdates.size > 0) {
+    pendingUpdates.forEach((val, id) => {
+      const book = uploadingList.find(b => b.fanqie_id === id);
+      if (book) { book.uploaded_chapters = val; updatedCount++; }
+    });
+    pendingUpdates.clear();
+    savedTrans = true;
+  }
+  // 4. Quét các ô sửa ngày/chương Waiting
+  if (pendingWaitingUpdates.size > 0) {
+    pendingWaitingUpdates.forEach((updates, id) => {
+      const book = waitingList.find(b => b.fanqie_id === id);
+      if (book) {
+        if (updates.desired_chapters !== undefined) { book.desired_chapters = updates.desired_chapters; updatedCount++; }
+        if (updates.desired_date !== undefined) { book.desired_date = updates.desired_date; updatedCount++; }
+      }
+    });
+    pendingWaitingUpdates.clear();
+    savedWait = true;
+  }
+  // Tiến hành đẩy lên GitHub
+  if (!savedWait && !savedTrans) return;
+  if (savedWait) await saveWaiting();
+  if (savedTrans) await saveUploading();
+  // Reset UI
   updateSaveBar();
-  await saveUploading();
-  renderUploading();
-  toast(`Saved ${count} chapter update(s).`, 'success');
+  if (savedWait) renderWaiting();
+  if (savedTrans) renderUploading();
+  // Thông báo kết quả tổng hợp
+  let msgs = [];
+  const totalAdd = addedW + addedT;
+  if (totalAdd > 0) msgs.push(`Thêm ${totalAdd} truyện`);
+  if (updatedCount > 0) msgs.push(`Sửa ${updatedCount} mục`);
+  toast('Đã lưu thành công: ' + msgs.join(' và ') + '.', 'success');
 }
-
 function discardInlineUpdates() {
   pendingUpdates.clear();
+  pendingWaitingUpdates.clear();
+  const wInput = document.getElementById('waiting-input');
+  if(wInput) wInput.value = '';
+  const tInput = document.getElementById('uploading-input');
+  if(tInput) tInput.value = '';
+  document.getElementById('add-panel-waiting').classList.remove('open');
+  document.getElementById('add-panel-uploading').classList.remove('open');
   updateSaveBar();
-  renderUploading();
+  renderAll();
 }
-
-//SORTED/FILTERED ARRAYS ─
+//SORTED/FILTERED ARRAYS
 function sortedWaiting() {
   let arr = [...waitingList].filter(b => bookMatchesSearch(b, searchWaiting));
   const s = document.getElementById('waiting-sort')?.value || 'default';
@@ -877,7 +932,6 @@ function sortedWaiting() {
   if (s === 'ready') arr.sort((a,b) => ((a.current_chapters||0)>=(a.desired_chapters||0)?0:1)-((b.current_chapters||0)>=(b.desired_chapters||0)?0:1));
   return arr;
 }
-
 function sortedUploading() {
   let arr = [...uploadingList].filter(b => {
     if (!bookMatchesSearch(b, searchUploading)) return false;
@@ -906,14 +960,12 @@ function sortedUploading() {
   if (s === 'updated_asc')  arr.sort((a,b) => (a.last_updated||'').localeCompare(b.last_updated||''));
   return arr;
 }
-
 //RENDER WAITING 
 function renderWaiting() {
   updateSortHeaders('waiting', WAITING_SORT_MAP, 'waiting-sort');
   const tbody = document.getElementById('waiting-tbody');
   const arr = sortedWaiting();
   setSearchCount('waiting', arr.length, waitingList.length);
-
   let anyReady = false, anyUrgent = false;
   if (!arr.length) {
     const msg = searchWaiting
@@ -922,8 +974,12 @@ function renderWaiting() {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">${searchWaiting?'🔍':'📋'}</div>${msg}</div></td></tr>`;
     updateBadges(); return;
   }
-
   tbody.innerHTML = arr.map(book => {
+    const pendingW = pendingWaitingUpdates.get(book.fanqie_id) || {};
+    const displayDesCh = pendingW.desired_chapters !== undefined ? pendingW.desired_chapters : (book.desired_chapters || 0);
+    const displayDesDate = pendingW.desired_date !== undefined ? pendingW.desired_date : (book.desired_date || '');
+    const isPendingCh = pendingW.desired_chapters !== undefined;
+    const isPendingDate = pendingW.desired_date !== undefined;
     const chReady = (book.current_chapters||0) >= (book.desired_chapters||0);
     if (chReady) anyReady = true;
     const dDays = daysUntilDeadline(book.desired_date);
@@ -933,41 +989,57 @@ function renderWaiting() {
       : `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${book.desired_chapters}</span>`;
     const chPct = Math.min(100, Math.round(((book.current_chapters||0)/(book.desired_chapters||1))*100));
     const fillCls = chPct>=100?'progress-fill':chPct>=70?'progress-fill warn':'progress-fill danger';
-
     const titleHtml = hl(book.vi_title||'', searchWaiting) || '<em style="color:var(--text3)">Chưa có tên</em>';
     const idHtml = hl(book.fanqie_id||'', searchWaiting);
     const titleLink = book.wiki_id
       ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link">${titleHtml}</a>`
       : titleHtml;
-
-    return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
+    return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}" style="cursor: pointer;" onclick="if(!event.target.closest('a, input, .link, .inline-update-wrap')) { const cb = this.querySelector('input[type=checkbox]'); cb.checked = !cb.checked; toggleSelect('waiting','${esc(book.fanqie_id)}', cb.checked, event); }">
       <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('waiting','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
       <td class="title-cell">
         <div class="title-main">${titleLink}</div>
         <div class="title-id"><span class="link" style="cursor:pointer" onclick="copyFanqieLink('${esc(book.fanqie_id)}')" title="Copy link 🍅">${idHtml}</span></div>
       </td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
-      <td class="mono">${book.desired_chapters}</td>
+      <td>
+        <div class="inline-update-wrap">
+          <input type="number" class="inline-ch-input${isPendingCh?' pending':''}"
+            data-fid="${esc(book.fanqie_id)}" data-field="chapters"
+            value="${displayDesCh}" min="0" title="Sửa số chương mong muốn"
+            oninput="onWaitingInlineInput('${esc(book.fanqie_id)}', 'chapters', this.value)" style="width:60px;" />
+        </div>
+      </td>
       <td>${fmtStatus(book.status)}</td>
       <td>${fmtDate(book.last_updated, book.status)}</td>
-      <td>${fmtDeadline(book.desired_date)}</td>
-      <td>${readyTag}</td>
+      <td>
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+        <input type="text" class="inline-ch-input${isPendingDate?' pending':''}"
+          data-fid="${esc(book.fanqie_id)}" data-field="date"
+          value="${esc(displayDesDate)}" placeholder="DD/MM/YYYY"
+          title="Sửa ngày: DD/MM/YYYY"
+          oninput="onWaitingInlineInput('${esc(book.fanqie_id)}', 'date', this.value)" style="width:85px; text-align:center;" />
+		  </div>
+      </td>
+      <td>
+        <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+          ${readyTag}
+          ${displayDesDate ? fmtDeadline(displayDesDate) : ''}
+        </div>
+      </td>
     </tr>`;
   }).join('');
-
   document.getElementById('waiting-ready-banner').style.display = anyReady ? 'flex' : 'none';
   document.getElementById('waiting-deadline-banner').style.display = anyUrgent ? 'flex' : 'none';
   requestAnimationFrame(updateTheadTop);
   updateSelectionUI(); updateBadges();
+  makeTableResizable('waiting-table');
 }
-
-//RENDER UPLOADING ─
+//RENDER UPLOADING
 function renderUploading() {
   updateSortHeaders('uploading', TRANS_SORT_MAP, 'trans-sort');
   const tbody = document.getElementById('uploading-tbody');
   const arr = sortedUploading();
   setSearchCount('uploading', arr.length, uploadingList.length);
-
   if (!arr.length) {
     const msg = searchUploading
       ? `No results for "<strong>${esc(searchUploading)}</strong>"`
@@ -975,23 +1047,18 @@ function renderUploading() {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="icon">${searchUploading?'🔍':'✍️'}</div>${msg}</div></td></tr>`;
     updateBadges(); return;
   }
-
   tbody.innerHTML = arr.map(book => {
     const wikiId = book.wiki_id ? book.wiki_id.replace(/~/g,'%7E') : null;
-
     const displayVal = pendingUpdates.has(book.fanqie_id) ? pendingUpdates.get(book.fanqie_id) : (book.uploaded_chapters||0);
     const isPending = pendingUpdates.has(book.fanqie_id);
     const safeTitle = esc(book.vi_title || book.fanqie_id);
-
     const titleHtml = hl(book.vi_title||'', searchUploading) || '<em style="color:var(--text3)">Chưa có tên</em>';
     const idHtml = hl(book.fanqie_id||'', searchUploading);
-
     const warns = getWarnTags(book);
     const isStale = warns.some(t => t.includes('Stale'));
     const isBehind = warns.some(t => t.includes('📚'));
     const rowStyle = isStale ? 'background:rgba(214,48,48,0.05);' : isBehind ? 'background:rgba(124,92,252,0.05);' : '';
-
-    return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}" style="${rowStyle}">
+    return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}" style="cursor: pointer; ${rowStyle}" onclick="if(!event.target.closest('a, input, .link, .inline-update-wrap')) { const cb = this.querySelector('input[type=checkbox]'); cb.checked = !cb.checked; toggleSelect('uploading','${esc(book.fanqie_id)}', cb.checked, event); }">
       <td class="check-col"><input type="checkbox" tabindex="-1" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${esc(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('uploading','${esc(book.fanqie_id)}',!this.checked,event);}"></td>
       <td class="title-cell">
         <div class="title-main" title="${safeTitle}">${titleHtml}</div>
@@ -1013,27 +1080,22 @@ function renderUploading() {
     </tr>`;
   }).join('');
   updateSelectionUI(); updateBadges();
+  makeTableResizable('uploading-table');
 }
-
 function setUploadingFilter(f) {
   uploadingFilter = f;
   document.querySelectorAll('#uploading-filters .pill').forEach(p => p.classList.toggle('active', p.dataset.filter===f));
   renderUploading();
 }
-
 function renderAll() { renderWaiting(); renderUploading(); updateBadges(); requestAnimationFrame(updateTheadTop); }
-
 function updateBadges() {
   document.getElementById('waiting-count-badge').textContent = waitingList.length||'';
   document.getElementById('trans-count-badge').textContent = uploadingList.length||'';
 }
-
-//SELECTION
+//SELECTION 
 let lastClickedId = { waiting: null, uploading: null };
-
 function toggleSelect(list, id, checked, event) {
   const set = list==='waiting' ? selectedWaiting : selectedUploading;
-
   if (event && event.shiftKey && lastClickedId[list]) {
     const src = list==='waiting' ? sortedWaiting() : sortedUploading();
     const ids = src.map(b => b.fanqie_id);
@@ -1043,10 +1105,8 @@ function toggleSelect(list, id, checked, event) {
       const [start, end] = fromIdx < toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
       for (let i = start; i <= end; i++) set.add(ids[i]);
     }
-    // Render lại cả bảng nếu dùng Shift
     if (list==='waiting') renderWaiting(); else renderUploading();
   } else {
-    // Chỉ cập nhật row hiện tại
     if (checked) set.add(id); else set.delete(id);
     const row = document.querySelector(`tr[data-id="${esc(id)}"]`);
     if (row) {
@@ -1055,11 +1115,9 @@ function toggleSelect(list, id, checked, event) {
       if (checkbox) checkbox.checked = checked;
     }
   }
-
   lastClickedId[list] = id;
   updateSelectionUI();
 }
-
 function toggleCheckAll(list, checked) {
   const set = list==='waiting' ? selectedWaiting : selectedUploading;
   const src = list==='waiting' ? sortedWaiting() : sortedUploading();
@@ -1068,20 +1126,17 @@ function toggleCheckAll(list, checked) {
   updateSelectionUI();
   if (list==='waiting') renderWaiting(); else renderUploading();
 }
-
 function selectAllVisible(list) {
   const set = list==='waiting' ? selectedWaiting : selectedUploading;
   const src = list==='waiting' ? sortedWaiting() : sortedUploading();
   src.forEach(b=>set.add(b.fanqie_id));
   updateSelectionUI(); renderAll();
 }
-
 function deselectAll(list) {
   if (list==='waiting') { selectedWaiting.clear(); renderWaiting(); }
   else { selectedUploading.clear(); renderUploading(); }
   updateSelectionUI();
 }
-
 function updateSelectionUI() {
   const wc = selectedWaiting.size;
   document.getElementById('waiting-sel-count').textContent = `${wc} selected`;
@@ -1089,62 +1144,18 @@ function updateSelectionUI() {
   document.getElementById('waiting-desel-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-del-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-promote-btn').style.display = wc ? 'inline-flex' : 'none';
-
   const tc = selectedUploading.size;
   document.getElementById('trans-sel-count').textContent = `${tc} selected`;
   document.getElementById('trans-sel-count').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-desel-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-del-btn').style.display = tc ? 'inline-flex' : 'none';
 }
-
 //ADD PANELS 
 function toggleAddPanel(list) {
   document.getElementById(`add-panel-${list}`).classList.toggle('open');
   requestAnimationFrame(updateTheadTop);
 }
-
-async function submitAdd(list) {
-  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  const raw = document.getElementById(`${list}-input`).value.trim();
-  if (!raw) { toast('Nothing to add.', 'error'); return; }
-  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
-  let added = 0;
-  if (list === 'waiting') {
-    for (const line of lines) {
-      const parts = line.split('|').map(p=>p.trim());
-      if (parts.length < 3) { toast(`Invalid line: ${line}`, 'error'); continue; }
-      const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
-      const desired = parseInt(desired_str);
-      if (!fanqie_id || isNaN(desired)) { toast(`Invalid: ${line}`, 'error'); continue; }
-      if (waitingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Already in waiting: ${fanqie_id}`, 'error'); continue; }
-      let desired_date = null;
-      if (desired_date_raw) {
-        const parsed = parseDesiredDate(desired_date_raw);
-        if (!parsed) { toast(`Invalid date format "${desired_date_raw}" — use DD/MM/YYYY`, 'error'); continue; }
-        const dd = String(parsed.getDate()).padStart(2,'0');
-        const mm = String(parsed.getMonth()+1).padStart(2,'0');
-        desired_date = `${dd}/${mm}/${parsed.getFullYear()}`;
-      }
-      waitingList.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
-      added++;
-    }
-    if (added) { await saveWaiting(); renderWaiting(); document.getElementById('waiting-input').value=''; toggleAddPanel('waiting'); toast(`Added ${added} book(s).`,'success'); }
-  } else {
-    for (const line of lines) {
-      const parts = line.split('|').map(p=>p.trim());
-      if (parts.length < 3) { toast(`Invalid line: ${line}`, 'error'); continue; }
-      const [wiki_id, ch_str, fanqie_id] = parts;
-      const uploaded = parseInt(ch_str);
-      if (!fanqie_id || isNaN(uploaded)) { toast(`Invalid: ${line}`, 'error'); continue; }
-      if (uploadingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Already in uploading: ${fanqie_id}`, 'error'); continue; }
-      uploadingList.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
-      added++;
-    }
-    if (added) { await saveUploading(); renderUploading(); document.getElementById('uploading-input').value=''; toggleAddPanel('uploading'); toast(`Added ${added} book(s).`,'success'); }
-  }
-}
-
-//MOVE TO UPLOADING ─
+//MOVE TO UPLOADING 
 function openMovePanel() {
   if (!selectedWaiting.size) return;
   const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
@@ -1153,9 +1164,7 @@ function openMovePanel() {
   document.getElementById('move-wiki-input').value = '';
   document.getElementById('move-panel').classList.add('open');
 }
-
 function closeMovePanel() { document.getElementById('move-panel').classList.remove('open'); }
-
 async function submitMove() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
@@ -1173,7 +1182,6 @@ async function submitMove() {
   closeMovePanel(); renderAll();
   toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
 }
-
 //DELETE 
 function bulkDelete(list) {
   const set = list==='waiting' ? selectedWaiting : selectedUploading;
@@ -1189,8 +1197,7 @@ function bulkDelete(list) {
     renderAll(); toast('Deleted.', 'success');
   });
 }
-
-//MODAL ─
+//MODAL 
 let _modalCallback = null;
 function showModal(title, body, onConfirm) {
   document.getElementById('modal-title').textContent = title;
@@ -1200,8 +1207,7 @@ function showModal(title, body, onConfirm) {
 }
 function closeModal() { document.getElementById('confirm-modal').classList.remove('open'); }
 document.getElementById('modal-confirm-btn').onclick = async () => { closeModal(); if (_modalCallback) await _modalCallback(); };
-
-//TOAST ─
+//TOAST 
 let _toastTimer;
 function toast(msg, type='') {
   const el = document.getElementById('toast');
@@ -1210,10 +1216,9 @@ function toast(msg, type='') {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
 }
-
 //UNSAVED CHANGES WARNING
 function hasUnsavedChanges() {
-  if (pendingUpdates.size > 0) return true;
+  if (pendingUpdates.size > 0 || pendingWaitingUpdates.size > 0) return true;
   const waitingInput = document.getElementById('waiting-input');
   const uploadingInput = document.getElementById('uploading-input');
   if (waitingInput && waitingInput.value.trim()) return true;
@@ -1226,7 +1231,44 @@ window.addEventListener('beforeunload', e => {
     e.returnValue = '';
   }
 });
-
+// TÍNH NĂNG KÉO THẢ CỘT
+function makeTableResizable(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const cols = table.querySelectorAll('thead th');
+  cols.forEach(col => {
+    if (col.classList.contains('check-col')) return;
+    if (col.querySelector('.resizer')) return;
+    const resizer = document.createElement('div');
+    resizer.classList.add('resizer');
+    col.appendChild(resizer);
+    let startX = 0;
+    let startWidth = 0;
+    const mouseDownHandler = function(e) {
+      startX = e.clientX;
+      const styles = window.getComputedStyle(col);
+      startWidth = parseInt(styles.width, 10);
+      document.addEventListener('mousemove', mouseMoveHandler);
+      document.addEventListener('mouseup', mouseUpHandler);
+      resizer.classList.add('resizing');
+      e.stopPropagation(); 
+      e.preventDefault();
+    };
+    const mouseMoveHandler = function(e) {
+      const dx = e.clientX - startX;
+      const newWidth = startWidth + dx;
+      col.style.width = `${newWidth}px`;
+      col.style.minWidth = `${newWidth}px`;
+    };
+    const mouseUpHandler = function() {
+      resizer.classList.remove('resizing');
+      document.removeEventListener('mousemove', mouseMoveHandler);
+      document.removeEventListener('mouseup', mouseUpHandler);
+    };
+    resizer.addEventListener('click', e => e.stopPropagation());
+    resizer.addEventListener('mousedown', mouseDownHandler);
+  });
+}
 //INIT 
 loadConfig();
 if (CFG.repo && CFG.token) { switchTab('waiting'); loadData(); } else switchTab('settings');
