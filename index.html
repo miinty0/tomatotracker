@@ -1231,10 +1231,35 @@ window.addEventListener('beforeunload', e => {
     e.returnValue = '';
   }
 });
-// TÍNH NĂNG KÉO THẢ CỘT
+// TÍNH NĂNG KÉO THẢ CỘT + LƯU WIDTH
+function saveColWidths(tableId) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const widths = {};
+  table.querySelectorAll('thead th').forEach(col => {
+    const id = col.id;
+    if (!id || col.classList.contains('check-col')) return;
+    widths[id] = col.style.width || window.getComputedStyle(col).width;
+  });
+  localStorage.setItem(`colWidths_${tableId}`, JSON.stringify(widths));
+}
+
+function restoreColWidths(tableId) {
+  const saved = localStorage.getItem(`colWidths_${tableId}`);
+  if (!saved) return;
+  try {
+    const widths = JSON.parse(saved);
+    Object.entries(widths).forEach(([id, width]) => {
+      const col = document.getElementById(id);
+      if (col) { col.style.width = width; col.style.minWidth = width; }
+    });
+  } catch(e) {}
+}
+
 function makeTableResizable(tableId) {
   const table = document.getElementById(tableId);
   if (!table) return;
+  restoreColWidths(tableId);
   const cols = table.querySelectorAll('thead th');
   cols.forEach(col => {
     if (col.classList.contains('check-col')) return;
@@ -1256,7 +1281,7 @@ function makeTableResizable(tableId) {
     };
     const mouseMoveHandler = function(e) {
       const dx = e.clientX - startX;
-      const newWidth = startWidth + dx;
+      const newWidth = Math.max(40, startWidth + dx);
       col.style.width = `${newWidth}px`;
       col.style.minWidth = `${newWidth}px`;
     };
@@ -1264,6 +1289,7 @@ function makeTableResizable(tableId) {
       resizer.classList.remove('resizing');
       document.removeEventListener('mousemove', mouseMoveHandler);
       document.removeEventListener('mouseup', mouseUpHandler);
+      saveColWidths(tableId);
     };
     resizer.addEventListener('click', e => e.stopPropagation());
     resizer.addEventListener('mousedown', mouseDownHandler);
