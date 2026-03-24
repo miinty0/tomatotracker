@@ -140,10 +140,11 @@
   .ahead.danger { color: var(--red); }
   .inline-update-wrap { display: flex; align-items: center; gap: 5px; }
   .inline-ch-input {
-    width: 40px; max-width: 100%; padding: 3px; background: var(--bg); border: 1px solid var(--border2);
-    border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 11px;
+    width: 48px; max-width: 100%; padding: 1px; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 3px; color: var(--text); font-family: var(--mono); font-size: 11px;
     outline: none; transition: border-color 0.15s, background 0.15s; text-align: center; 
   }
+  .inline-ch-input[type="text"] { width: 100px; }
   #uth-set-uploaded, td:has(.inline-update-wrap) { padding: 7px 4px; }
   .inline-ch-input:focus { border-color: var(--accent); }
   .inline-ch-input.pending { border-color: var(--yellow); background: rgba(245,197,66,0.06); color: var(--yellow); }
