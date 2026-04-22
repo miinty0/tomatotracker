@@ -158,26 +158,21 @@ def save_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def apply_fanqie(book: dict, fq: dict, preserve_status: bool = False, exclude: set = None):
+def apply_fanqie(book: dict, fq: dict, exclude: set = None):
     """Merge scraped fanqie data into a book dict.
-    - preserve_status: never overwrite the existing status tag (completed mode).
-    - exclude: set of keys to skip entirely (e.g. {'current_chapters'} for uploading list)."""
+    - exclude: set of keys to skip entirely (e.g. {'current_chapters'} for uploading list).
+    - 'Tạm dừng' status is always preserved regardless of what the site returns."""
     updates = {k: v for k, v in fq.items() if not exclude or k not in exclude}
-    if preserve_status:
-        scraped_status = updates.pop("status", None)
-        if scraped_status and scraped_status != book.get("status"):
-            print(f"  [info] {book['fanqie_id']}: site now shows '{scraped_status}', keeping '{book.get('status')}' (preserve_status)")
+    if book.get("status") == "Tạm dừng":
+        updates.pop("status", None)
     book.update(updates)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['auto', 'completed'], default='auto',
-                        help='auto: scrape ongoing+deleted only; completed: scrape completed only (status tag is preserved)')
+                        help='auto: scrape ongoing only; completed: scrape completed/paused only')
     args = parser.parse_args()
-
-    # not touch the status tag
-    preserve_status = (args.mode == "completed")
 
     print(f"=== Fanqie Tracker Scraper [{args.mode}] — {datetime.now().isoformat()} ===")
     waiting = load_json("waiting_list.json")
@@ -192,10 +187,23 @@ def main():
     def should_scrape(book):
         s = (book.get("status") or "").strip()
         if args.mode == "completed":
-            return s == "已完结"
+            if s != "已完结":
+                return False
+            # Skip if last_updated is older than 12 months (but scrape if no date)
+            last_updated = book.get("last_updated")
+            if last_updated:
+                try:
+                    lu_dt = datetime.strptime(last_updated[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                    age_days = (datetime.now(tz=timezone.utc) - lu_dt).days
+                    if age_days > 365:
+                        print(f"  [skip] {book.get('fanqie_id','?')}: last_updated {last_updated[:10]} is {age_days}d ago (>12 months)")
+                        return False
+                except Exception:
+                    pass  # can't parse date, scrape anyway
+            return True
         else:  # auto
-            return s != "已完结"
-
+            # Skip completed and paused books
+            return s not in ("已完结", "Tạm dừng")
     print(f"\n[Waiting List] {len(waiting)} books")
     for book in waiting:
         if not should_scrape(book):
@@ -205,7 +213,7 @@ def main():
         if fq is None:
             failed_ids.append(bid)
         else:
-            apply_fanqie(book, fq, preserve_status=preserve_status)
+            apply_fanqie(book, fq)
             retry_ids.discard(bid)
         time.sleep(1.5)
 
@@ -222,7 +230,7 @@ def main():
             failed_ids.append(bid)
         else:
             # current_chapters is stored as fanqie_chapters in the uploading list
-            apply_fanqie(book, fq, preserve_status=preserve_status, exclude={"current_chapters"})
+            apply_fanqie(book, fq, exclude={"current_chapters"})
             book["fanqie_chapters"] = fq.get("current_chapters")
             retry_ids.discard(bid)
 
