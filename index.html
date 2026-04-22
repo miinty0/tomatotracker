@@ -182,6 +182,9 @@
   .pill-orange { color: var(--orange); border-color: rgba(255,140,66,0.35); }
   .pill-orange:hover { border-color: var(--orange) !important; color: var(--orange) !important; }
   .pill-orange.active { background: rgba(255,140,66,0.12); border-color: var(--orange); color: var(--orange); }
+  .pill-gray { color: var(--text2); border-color: rgba(136,150,170,0.35); }
+  .pill-gray:hover { border-color: var(--text2) !important; color: var(--text) !important; }
+  .pill-gray.active { background: rgba(136,150,170,0.12); border-color: var(--text2); color: var(--text); }
   .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
   #toast { position: fixed; bottom: 70px; right: 16px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 14px; font-size: 12px; z-index: 400; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 300px; }
@@ -249,6 +252,7 @@
       <span class="select-count" id="waiting-sel-count" style="display:none"></span>
       <button class="btn ghost" id="waiting-desel-btn" onclick="deselectAll('waiting')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="waiting-del-btn" onclick="bulkDelete('waiting')" style="display:none">🗑 Delete</button>
+      <button class="btn" id="waiting-pause-btn" onclick="bulkPause('waiting')" style="display:none">⏸ Tạm dừng</button>
       <button class="btn" id="waiting-promote-btn" onclick="openMovePanel()" style="display:none">→ Move to Uploading</button>
     </div>
     <div class="toolbar-right">
@@ -325,10 +329,12 @@
       <span class="select-count" id="trans-sel-count" style="display:none"></span>
       <button class="btn ghost" id="trans-desel-btn" onclick="deselectAll('uploading')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
+      <button class="btn" id="trans-pause-btn" onclick="bulkPause('uploading')" style="display:none">⏸ Tạm dừng</button>
       <div class="filter-pills" id="uploading-filters">
         <div class="pill active" data-filter="all" onclick="setUploadingFilter('all')">All</div>
         <div class="pill pill-green" data-filter="ongoing" onclick="setUploadingFilter('ongoing')">🟩 Còn tiếp</div>
         <div class="pill pill-orange" data-filter="completed" onclick="setUploadingFilter('completed')">🟨 Hoàn thành</div>
+        <div class="pill pill-gray" data-filter="paused" onclick="setUploadingFilter('paused')">⏸ Tạm dừng</div>
       </div>
     </div>
     <div class="toolbar-right">
@@ -747,6 +753,7 @@ function fmtStatus(status) {
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
   if (status.includes('已完结') || status.includes('hoàn thành')) return '<span class="tag tag-orange">Hoàn thành</span>';
   if (status.includes('已删除')) return '<span class="tag tag-red">Đã xóa</span>';
+  if (status === 'Tạm dừng') return '<span class="tag tag-purple">⏸ Tạm dừng</span>';
   return `<span class="tag tag-blue">${esc(status)}</span>`;
 }
 function daysSince(dateStr) {
@@ -757,7 +764,7 @@ function fmtDate(dateStr, status) {
   if (!dateStr) return '<span style="color:var(--text3)">—</span>';
   const d = daysSince(dateStr);
   const s = (status||'').toLowerCase();
-  const isCompleted = s.includes('已完结') || s.includes('hoàn thành');
+  const isCompleted = s.includes('已完结') || s.includes('hoàn thành') || status === 'Tạm dừng';
   const cls = (!isCompleted && d >= 15) ? 'color:var(--red)' : (!isCompleted && d >= 7) ? 'color:var(--yellow)' : 'color:var(--text2)';
   return `<span style="${cls}" class="mono">${dateStr.slice(0,10)}</span>`;
 }
@@ -770,7 +777,7 @@ function aheadBadge(fanqie_ch, uploaded_ch) {
 function getWarnTags(book) {
   const tags = [];
   const status = (book.status||'').toLowerCase();
-  const isCompleted = status.includes('已完结') || status.includes('hoàn thành');
+  const isCompleted = status.includes('已完结') || status.includes('hoàn thành') || book.status === 'Tạm dừng';
   if (!isCompleted && daysSince(book.last_updated) >= 15)
     tags.push('<span class="tag tag-red">🕐 Stale '+daysSince(book.last_updated)+'d</span>');
   const ahead = (book.fanqie_chapters||0) - (book.uploaded_chapters||0);
@@ -942,7 +949,10 @@ function sortedUploading() {
     }
     if (uploadingFilter === 'completed') {
       const s = (b.status||'').toLowerCase();
-      return s.includes('已完结') || s.includes('hoàn thành');
+      return s.includes('已完结') || s.includes('hoàn thành') || b.status === 'Tạm dừng';
+    }
+    if (uploadingFilter === 'paused') {
+      return b.status === 'Tạm dừng';
     }
     return true;
   });
@@ -1135,12 +1145,14 @@ function updateSelectionUI() {
   document.getElementById('waiting-sel-count').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-desel-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-del-btn').style.display = wc ? 'inline-flex' : 'none';
+  document.getElementById('waiting-pause-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-promote-btn').style.display = wc ? 'inline-flex' : 'none';
   const tc = selectedUploading.size;
   document.getElementById('trans-sel-count').textContent = `${tc} selected`;
   document.getElementById('trans-sel-count').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-desel-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-del-btn').style.display = tc ? 'inline-flex' : 'none';
+  document.getElementById('trans-pause-btn').style.display = tc ? 'inline-flex' : 'none';
 }
 //ADD PANELS 
 function toggleAddPanel(list) {
@@ -1173,6 +1185,34 @@ async function submitMove() {
   await saveUploading();
   closeMovePanel(); renderAll();
   toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
+}
+//PAUSE 
+async function bulkPause(list) {
+  const set = list==='waiting' ? selectedWaiting : selectedUploading;
+  if (!set.size) return;
+  const books = list==='waiting'
+    ? waitingList.filter(b=>set.has(b.fanqie_id))
+    : uploadingList.filter(b=>set.has(b.fanqie_id));
+  const alreadyPaused = books.filter(b=>b.status==='Tạm dừng');
+  const toResume = alreadyPaused.length === books.length;
+  const actionLabel = toResume ? 'Bỏ tạm dừng' : 'Tạm dừng';
+  showModal(
+    `${actionLabel} ${set.size} truyện?`,
+    toResume
+      ? `Các truyện sẽ được đặt lại thành null (chờ scrape cập nhật status).`
+      : `Status của các truyện sẽ được đặt thành "Tạm dừng". Scraper Ongoing sẽ bỏ qua chúng.`,
+    async () => {
+      if (list==='waiting') {
+        waitingList.forEach(b => { if (set.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
+        set.clear(); await saveWaiting(); renderWaiting();
+      } else {
+        uploadingList.forEach(b => { if (set.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
+        set.clear(); await saveUploading(); renderUploading();
+      }
+      updateSelectionUI();
+      toast(`${actionLabel} ${books.length} truyện thành công.`, 'success');
+    }
+  );
 }
 //DELETE 
 function bulkDelete(list) {
