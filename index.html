@@ -753,7 +753,7 @@ function fmtStatus(status) {
   if (status.includes('连载中') || status.includes('còn tiếp')) return '<span class="tag tag-green">Còn tiếp</span>';
   if (status.includes('已完结') || status.includes('hoàn thành')) return '<span class="tag tag-orange">Hoàn thành</span>';
   if (status.includes('已删除')) return '<span class="tag tag-red">Đã xóa</span>';
-  if (status === 'Tạm dừng') return '<span class="tag tag-purple">⏸ Tạm dừng</span>';
+  if (status === 'Tạm dừng') return '<span class="tag tag-purple">Tạm dừng</span>';
   return `<span class="tag tag-blue">${esc(status)}</span>`;
 }
 function daysSince(dateStr) {
@@ -1200,7 +1200,7 @@ async function bulkPause(list) {
     `${actionLabel} ${set.size} truyện?`,
     toResume
       ? `Các truyện sẽ được đặt lại thành null (chờ scrape cập nhật status).`
-      : `Status của các truyện sẽ được đặt thành "Tạm dừng". Scraper Ongoing sẽ bỏ qua chúng.`,
+      : `Status của các truyện sẽ được đặt thành "Tạm dừng" và sẽ không scrape hàng ngày nữa.`,
     async () => {
       if (list==='waiting') {
         waitingList.forEach(b => { if (set.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
