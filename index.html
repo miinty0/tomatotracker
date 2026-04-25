@@ -114,6 +114,14 @@
   input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
   .title-main { font-weight: 500; color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .title-id { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+  .note { font-family: var(--mono); font-size: 10px; color: var(--yellow); background: rgba(245,197,66,0.07); border-left: 2px solid rgba(245,197,66,0.4); padding: 2px 5px; margin-top: 3px; border-radius: 0 2px 2px 0; cursor: pointer; white-space: pre-wrap; word-break: break-word; }
+  .note:hover { background: rgba(245,197,66,0.13); }
+  .note-add { font-family: var(--mono); font-size: 10px; color: var(--text3); cursor: pointer; margin-top: 3px; display: inline-block; opacity: 0.5; }
+  .note-add:hover { opacity: 1; color: var(--yellow); }
+  .note-input { font-family: var(--mono); font-size: 10px; color: var(--yellow); background: rgba(245,197,66,0.06); border: 1px solid rgba(245,197,66,0.4); border-radius: 3px; padding: 2px 5px; margin-top: 3px; width: 100%; outline: none; resize: none; min-height: 34px; }
+  .note-input:focus { border-color: var(--yellow); background: rgba(245,197,66,0.1); }
+  .note-input.pending { border-color: var(--yellow); }
+  .title-cell { position: relative; }
   .mono { font-family: var(--mono); font-size: 11px; }
   .link { color: var(--accent); text-decoration: none; }
   .link:hover { text-decoration: underline; }
@@ -453,6 +461,8 @@ let selectedUploading = new Set();
 let uploadingFilter = 'all';
 let pendingUpdates = new Map(); 
 let pendingWaitingUpdates = new Map(); 
+let pendingNotes = new Map(); 
+let pendingTransNotes = new Map(); 
 let searchWaiting = '';
 let searchUploading = '';
 let _searchTimerWaiting = null;
@@ -824,13 +834,54 @@ function onWaitingInlineInput(fanqieId, field, rawVal) {
   if (input) input.classList.toggle('pending', currentPending[pendingKey] !== undefined);
   updateSaveBar();
 }
+function onNoteInput(list, fanqieId, val) {
+  const map = list === 'waiting' ? pendingNotes : pendingTransNotes;
+  const srcList = list === 'waiting' ? waitingList : uploadingList;
+  const book = srcList.find(b => b.fanqie_id === fanqieId);
+  if (!book) return;
+  if (val.trim() === (book.note || '').trim()) map.delete(fanqieId);
+  else map.set(fanqieId, val);
+  const input = document.querySelector(`.note-input[data-fid="${CSS.escape(fanqieId)}"][data-list="${list}"]`);
+  if (input) input.classList.toggle('pending', map.has(fanqieId));
+  updateSaveBar();
+}
+function toggleNoteEdit(list, fanqieId) {
+  const srcList = list === 'waiting' ? waitingList : uploadingList;
+  const pendingMap = list === 'waiting' ? pendingNotes : pendingTransNotes;
+  const book = srcList.find(b => b.fanqie_id === fanqieId);
+  if (!book) return;
+  const cell = document.querySelector(`td.title-cell[data-fid="${CSS.escape(fanqieId)}"][data-list="${list}"]`);
+  if (!cell) return;
+  const existing = cell.querySelector('.note-input');
+  if (existing) { existing.focus(); return; }
+  const noteDiv = cell.querySelector('.note, .note-add');
+  const currentVal = pendingMap.has(fanqieId) ? pendingMap.get(fanqieId) : (book.note || '');
+  const ta = document.createElement('textarea');
+  ta.className = 'note-input' + (pendingMap.has(fanqieId) ? ' pending' : '');
+  ta.dataset.fid = fanqieId;
+  ta.dataset.list = list;
+  ta.value = currentVal;
+  ta.placeholder = 'Ghi chú... (Enter để lưu, Esc để hủy)';
+  ta.oninput = () => onNoteInput(list, fanqieId, ta.value);
+  ta.onkeydown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ta.blur(); }
+    if (e.key === 'Escape') { ta.value = book.note || ''; onNoteInput(list, fanqieId, ta.value); ta.blur(); }
+  };
+  ta.onblur = () => {
+    if (list === 'waiting') renderWaiting(); else renderUploading();
+  };
+  if (noteDiv) noteDiv.replaceWith(ta);
+  else cell.appendChild(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
 function updateSaveBar() {
   const wRaw = document.getElementById('waiting-input').value.trim();
   const tRaw = document.getElementById('uploading-input').value.trim();
   const addedW = wRaw ? wRaw.split('\n').filter(l=>l.trim()).length : 0;
   const addedT = tRaw ? tRaw.split('\n').filter(l=>l.trim()).length : 0;
   const totalAdd = addedW + addedT;
-  const n = pendingUpdates.size + pendingWaitingUpdates.size;
+  const n = pendingUpdates.size + pendingWaitingUpdates.size + pendingNotes.size + pendingTransNotes.size;
   let msg = [];
   if (n > 0) msg.push(`✏️ <strong>${n}</strong> unsaved update(s)`);
   if (totalAdd > 0) msg.push(`➕ <strong>${totalAdd}</strong> book(s) to add`);
@@ -901,6 +952,22 @@ async function submitInlineUpdates() {
     pendingUpdates.clear();
     savedTrans = true;
   }
+  if (pendingTransNotes.size > 0) {
+    pendingTransNotes.forEach((note, id) => {
+      const book = uploadingList.find(b => b.fanqie_id === id);
+      if (book) { book.note = note.trim() || null; updatedCount++; }
+    });
+    pendingTransNotes.clear();
+    savedTrans = true;
+  }
+  if (pendingNotes.size > 0) {
+    pendingNotes.forEach((note, id) => {
+      const book = waitingList.find(b => b.fanqie_id === id);
+      if (book) { book.note = note.trim() || null; updatedCount++; }
+    });
+    pendingNotes.clear();
+    savedWait = true;
+  }
   if (pendingWaitingUpdates.size > 0) {
     pendingWaitingUpdates.forEach((updates, id) => {
       const book = waitingList.find(b => b.fanqie_id === id);
@@ -927,6 +994,8 @@ async function submitInlineUpdates() {
 function discardInlineUpdates() {
   pendingUpdates.clear();
   pendingWaitingUpdates.clear();
+  pendingNotes.clear();
+  pendingTransNotes.clear();
   const wInput = document.getElementById('waiting-input');
   if(wInput) wInput.value = '';
   const tInput = document.getElementById('uploading-input');
@@ -949,7 +1018,7 @@ function sortedUploading() {
     }
     if (uploadingFilter === 'completed') {
       const s = (b.status||'').toLowerCase();
-      return s.includes('已完结') || s.includes('hoàn thành') || b.status === 'Tạm dừng';
+      return s.includes('已完结') || s.includes('hoàn thành');
     }
     if (uploadingFilter === 'paused') {
       return b.status === 'Tạm dừng';
@@ -1006,9 +1075,10 @@ function renderWaiting() {
       : titleHtml;
 return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
       <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${escJs(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('waiting','${escJs(book.fanqie_id)}',!this.checked,event);}"></td>
-      <td class="title-cell">
+      <td class="title-cell" data-fid="${esc(book.fanqie_id)}" data-list="waiting">
         <div class="title-main">${titleLink}</div>
         <div class="title-id"><span class="link" style="cursor:pointer" onclick="copyFanqieLink('${escJs(book.fanqie_id)}')" title="Copy link 🍅">${idHtml}</span></div>
+        ${(pendingNotes.has(book.fanqie_id) ? pendingNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('waiting','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingNotes.has(book.fanqie_id) ? pendingNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('waiting','${escJs(book.fanqie_id)}')" title="Thêm note">+ note</span>`}
       </td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
       <td>
@@ -1069,9 +1139,10 @@ function renderUploading() {
     const rowStyle = isStale ? 'background:rgba(214,48,48,0.05);' : isBehind ? 'background:rgba(124,92,252,0.05);' : '';
 return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}" style="${rowStyle}">
       <td class="check-col"><input type="checkbox" tabindex="-1" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${escJs(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('uploading','${escJs(book.fanqie_id)}',!this.checked,event);}"></td>
-      <td class="title-cell">
+      <td class="title-cell" data-fid="${esc(book.fanqie_id)}" data-list="uploading">
         <div class="title-main" title="${safeTitle}">${titleHtml}</div>
         <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'}/<span class="link" style="cursor:pointer" onclick="copyFanqieLink('${escJs(book.fanqie_id)}')" title="Copy link 🍅" tabindex="-1">${idHtml}</span></div>
+        ${(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Thêm note">+ note</span>`}
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
       <td class="mono">${book.uploaded_chapters||0}</td>
