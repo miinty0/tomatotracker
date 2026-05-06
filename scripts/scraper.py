@@ -92,6 +92,12 @@ def scrape_fanqie(book_id: str) -> dict | None:
                 result["status"] = "已删除"
                 return result
 
+            # Detect removed via no-content div (book hidden/restricted, bookId missing from state)
+            if soup.find("div", class_="no-content"):
+                print(f"  [fanqie] {book_id}: removed (no-content page)")
+                result["status"] = "已删除"
+                return result
+
             if result["status"] is None:
                 label_div = soup.find("div", class_="info-label")
                 if label_div:
@@ -116,6 +122,10 @@ def scrape_fanqie(book_id: str) -> dict | None:
                         match = re.search(r"(\d+)\s*章", h3.get_text(strip=True))
                         if match:
                             result["current_chapters"] = int(match.group(1))
+
+        if all(v is None for v in result.values()):
+            print(f"  [fanqie] {book_id}: no data extracted because of bot block, will retry", file=sys.stderr)
+            return None
 
         print(f"  [fanqie] {book_id}: {result['current_chapters']}章, {result['status']}, {result['last_updated']}")
     except Exception as e:
@@ -170,8 +180,8 @@ def apply_fanqie(book: dict, fq: dict, exclude: set = None):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', choices=['auto', 'completed'], default='auto',
-                        help='auto: scrape ongoing only; completed: scrape completed/paused only')
+    parser.add_argument('--mode', choices=['auto', 'completed', 'paused'], default='auto',
+                        help='auto: scrape ongoing only; completed: scrape completed only; paused: update chapter count + last_updated for Tạm dừng books only')
     args = parser.parse_args()
 
     print(f"=== Fanqie Tracker Scraper [{args.mode}] — {datetime.now().isoformat()} ===")
@@ -201,9 +211,15 @@ def main():
                 except Exception:
                     pass  # can't parse date, scrape anyway
             return True
+        elif args.mode == "paused":
+            return s == "Tạm dừng"
         else:  # auto
             # Skip completed and paused books
             return s not in ("已完结", "Tạm dừng")
+
+    # In paused mode, only update chapters + last_updated, never touch status
+    PAUSED_EXCLUDE = {"status"}
+
     print(f"\n[Waiting List] {len(waiting)} books")
     for book in waiting:
         if not should_scrape(book):
@@ -213,7 +229,7 @@ def main():
         if fq is None:
             failed_ids.append(bid)
         else:
-            apply_fanqie(book, fq)
+            apply_fanqie(book, fq, exclude=PAUSED_EXCLUDE if args.mode == "paused" else None)
             retry_ids.discard(bid)
         time.sleep(1.5)
 
@@ -230,7 +246,9 @@ def main():
             failed_ids.append(bid)
         else:
             # current_chapters is stored as fanqie_chapters in the uploading list
-            apply_fanqie(book, fq, exclude={"current_chapters"})
+            # paused mode also excludes status; both modes exclude current_chapters for uploading list
+            exclude = {"current_chapters"} | (PAUSED_EXCLUDE if args.mode == "paused" else set())
+            apply_fanqie(book, fq, exclude=exclude)
             book["fanqie_chapters"] = fq.get("current_chapters")
             retry_ids.discard(bid)
 
