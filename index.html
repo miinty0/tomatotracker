@@ -1078,7 +1078,7 @@ return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id
       <td class="title-cell" data-fid="${esc(book.fanqie_id)}" data-list="waiting">
         <div class="title-main">${titleLink}</div>
         <div class="title-id"><span class="link" style="cursor:pointer" onclick="copyFanqieLink('${escJs(book.fanqie_id)}')" title="Copy link 🍅">${idHtml}</span></div>
-        ${(pendingNotes.has(book.fanqie_id) ? pendingNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('waiting','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingNotes.has(book.fanqie_id) ? pendingNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('waiting','${escJs(book.fanqie_id)}')" title="Thêm note">+ note</span>`}
+        ${(pendingNotes.has(book.fanqie_id) ? pendingNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('waiting','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingNotes.has(book.fanqie_id) ? pendingNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('waiting','${escJs(book.fanqie_id)}')" title="Thêm note">note</span>`}
       </td>
       <td><div class="progress-wrap"><div class="progress-bar"><div class="${fillCls}" style="width:${chPct}%"></div></div><span class="mono">${book.current_chapters||'?'}</span></div></td>
       <td>
@@ -1142,7 +1142,7 @@ return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-
       <td class="title-cell" data-fid="${esc(book.fanqie_id)}" data-list="uploading">
         <div class="title-main" title="${safeTitle}">${titleHtml}</div>
         <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'}/<span class="link" style="cursor:pointer" onclick="copyFanqieLink('${escJs(book.fanqie_id)}')" title="Copy link 🍅" tabindex="-1">${idHtml}</span></div>
-        ${(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Thêm note">+ note</span>`}
+        ${(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Thêm note">note</span>`}
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
       <td class="mono">${book.uploaded_chapters||0}</td>
