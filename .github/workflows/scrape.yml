@@ -2,8 +2,10 @@ name: Daily Scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'
-    - cron: '0 18 * * *'
+    - cron: '0 6 * * *'   # Main scrape 06:00 UTC
+    - cron: '0 7 * * *'   # Retry-only  07:00 UTC (1h after morning main)
+    - cron: '0 18 * * *'  # Main scrape 18:00 UTC
+    - cron: '0 19 * * *'  # Retry-only  19:00 UTC (1h after evening main)
   workflow_dispatch:
     inputs:
       mode:
@@ -14,11 +16,13 @@ on:
           - auto
           - completed
           - paused
+          - retry-only
         default: auto
 
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -32,13 +36,33 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4 --break-system-packages
 
+      - name: Determine run flags
+        id: flags
+        run: |
+          IS_RETRY_CRON=false
+          HOUR=$(date -u +%H)
+          MINUTE=$(date -u +%M)
+          # 07:00 and 19:00 UTC are retry-only crons
+          if [[ "$HOUR" == "07" || "$HOUR" == "19" ]] && [[ "$MINUTE" == "0"* ]]; then
+            IS_RETRY_CRON=true
+          fi
+
+          MODE="${{ github.event.inputs.mode || 'auto' }}"
+          if [[ "$IS_RETRY_CRON" == "true" || "$MODE" == "retry-only" ]]; then
+            echo "args=--retry-only" >> $GITHUB_OUTPUT
+            echo "label=retry-only" >> $GITHUB_OUTPUT
+          else
+            echo "args=--mode $MODE" >> $GITHUB_OUTPUT
+            echo "label=$MODE" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run scraper
-        run: python3 scripts/scraper.py --mode ${{ github.event.inputs.mode || 'auto' }}
+        run: python3 scripts/scraper.py ${{ steps.flags.outputs.args }}
 
       - name: Commit updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add waiting_list.json uploading_list.json retry_list.json
-          git diff --staged --quiet || git commit -m "chore: scrape [${{ github.event.inputs.mode || 'auto' }}] $(date -u +%Y-%m-%d)"
+          git diff --staged --quiet || git commit -m "chore: scrape [${{ steps.flags.outputs.label }}] $(date -u +%Y-%m-%d)"
           for i in 1 2 3; do git push && break || sleep 15; done
