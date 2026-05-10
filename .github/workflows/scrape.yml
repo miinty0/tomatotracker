@@ -15,6 +15,7 @@ on:
           - completed
           - paused
         default: auto
+
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
