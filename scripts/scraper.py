@@ -5,25 +5,56 @@ import requests
 from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 import time
+import random
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-}
-
-SESSION = requests.Session()
-SESSION.headers.update(HEADERS)
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+    "(KHTML, like Gecko) Version/17.4.1 Safari/605.1.15",
+]
 
 RETRY_FILE = "retry_list.json"
 MAX_RETRIES = 3
-RETRY_DELAYS = [5, 10, 20]
+RETRY_DELAYS = [10, 20, 30]
 
 
-def fetch_with_retry(url: str, book_id: str) -> requests.Response | None:
+def make_session() -> requests.Session:
+    """Create a fresh session with randomised headers."""
+    ua = random.choice(USER_AGENTS)
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": ua,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Referer": "https://fanqienovel.com/",
+        "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "Connection": "keep-alive",
+    })
+    return session
+
+
+FANQIE_SESSION = make_session()
+WIKI_SESSION = make_session()
+
+
+def fetch_with_retry(url: str, book_id: str, session: requests.Session) -> requests.Response | None:
     for attempt in range(MAX_RETRIES):
         try:
-            resp = SESSION.get(url, timeout=15)
+            resp = session.get(url, timeout=15)
             return resp
         except Exception as e:
             wait = RETRY_DELAYS[attempt]
@@ -35,15 +66,20 @@ def fetch_with_retry(url: str, book_id: str) -> requests.Response | None:
 
 
 def scrape_fanqie(book_id: str) -> dict | None:
+    """
+    Returns:
+      dict  — scraped data (may have None values if partially blocked)
+      None  — total failure, should be added to retry list
+    """
+    global FANQIE_SESSION
     url = f"https://fanqienovel.com/page/{book_id}"
 
     for attempt in range(MAX_RETRIES):
         result = {"current_chapters": None, "status": None, "last_updated": None}
 
-        resp = fetch_with_retry(url, book_id)
+        resp = fetch_with_retry(url, book_id, FANQIE_SESSION)
         if resp is None:
-            # Network-level failure after fetch retries 
-            print(f"  [fanqie] SKIP {book_id}: all retries failed, will retry next run", file=sys.stderr)
+            print(f"  [fanqie] SKIP {book_id}: all fetch retries failed, will retry next run", file=sys.stderr)
             return None
 
         try:
@@ -53,49 +89,41 @@ def scrape_fanqie(book_id: str) -> dict | None:
                 return result
             resp.raise_for_status()
 
-            # ── Primary: extract from __INITIAL_STATE__ JSON embedded in page ──
             raw = resp.text
 
-            book_id_val = re.search(r'"bookId"\s*:\s*"(\d*)"', raw)
+            book_id_val  = re.search(r'"bookId"\s*:\s*"(\d*)"', raw)
             book_name_val = re.search(r'"bookName"\s*:\s*"([^"]*)"', raw)
 
             if book_id_val is not None:
-                # INITIAL_STATE is present — check if book is removed/hidden
                 if not book_id_val.group(1) or not (book_name_val and book_name_val.group(1)):
                     print(f"  [fanqie] {book_id}: removed (empty page state)")
                     result["status"] = "已删除"
                     return result
 
-                # creationStatus: 0 = 已完结, 1 = 连载中
                 s_match = re.search(r'"creationStatus"\s*:\s*(\d+)', raw)
                 if s_match:
                     s = int(s_match.group(1))
                     result["status"] = "连载中" if s == 1 else "已完结" if s == 0 else None
 
-                # last_updated from lastPublishTime (unix timestamp)
                 ts_match = re.search(r'"lastPublishTime"\s*:\s*"(\d+)"', raw)
                 if ts_match:
                     result["last_updated"] = datetime.fromtimestamp(
                         int(ts_match.group(1)), tz=timezone.utc
                     ).strftime("%Y-%m-%d %H:%M")
 
-                # chapter count
                 ct_match = re.search(r'"chapterTotal"\s*:\s*(\d+)', raw)
                 if ct_match:
                     result["current_chapters"] = int(ct_match.group(1))
 
-            # ── Fallback: parse HTML if JSON missing any field ──
             if any(v is None for v in result.values()):
                 soup = BeautifulSoup(resp.text, "html.parser")
 
-                # Detect removed via title tag
                 title = soup.find("title")
                 if title and title.get_text(strip=True).startswith("小说,番茄小说网"):
                     print(f"  [fanqie] {book_id}: removed (title redirect)")
                     result["status"] = "已删除"
                     return result
 
-                # Detect removed via no-content div (book hidden/restricted, bookId missing from state)
                 if soup.find("div", class_="no-content"):
                     print(f"  [fanqie] {book_id}: removed (no-content page)")
                     result["status"] = "已删除"
@@ -126,19 +154,19 @@ def scrape_fanqie(book_id: str) -> dict | None:
                             if match:
                                 result["current_chapters"] = int(match.group(1))
 
-            # ── Bot block: all values still None → retry ──
+            # ── Bot block: all values still None → rotate session & retry ──
             if all(v is None for v in result.values()):
                 wait = RETRY_DELAYS[attempt]
+                FANQIE_SESSION = make_session()  # rotate UA + fresh session
                 if attempt < MAX_RETRIES - 1:
                     print(f"  [fanqie] {book_id}: bot block on attempt {attempt+1}/{MAX_RETRIES}, "
-                          f"retrying in {wait}s...", file=sys.stderr)
+                          f"rotating session, retrying in {wait}s...", file=sys.stderr)
                     time.sleep(wait)
                 else:
                     print(f"  [fanqie] {book_id}: bot block on attempt {attempt+1}/{MAX_RETRIES}, "
                           f"giving up → retry next run", file=sys.stderr)
-                continue  # next attempt
+                continue
 
-            # Got data — success
             print(f"  [fanqie] {book_id}: {result['current_chapters']}章, {result['status']}, {result['last_updated']}")
             return result
 
@@ -146,7 +174,6 @@ def scrape_fanqie(book_id: str) -> dict | None:
             print(f"  [fanqie] ERROR {book_id}: {e}", file=sys.stderr)
             return None
 
-    # Exhausted all attempts due to bot block
     return None
 
 
@@ -155,7 +182,7 @@ def scrape_wiki(wiki_id: str) -> dict:
     url = f"https://wikicv.net/truyen/{encoded_id}"
     result = {"vi_title": None}
 
-    resp = fetch_with_retry(url, wiki_id)
+    resp = fetch_with_retry(url, wiki_id, WIKI_SESSION)
     if resp is None:
         print(f"  [wiki] SKIP {wiki_id}: all retries failed", file=sys.stderr)
         return result
@@ -187,41 +214,67 @@ def save_json(path, data):
 
 def apply_fanqie(book: dict, fq: dict, exclude: set = None):
     """Merge scraped fanqie data into a book dict.
-    - exclude: set of keys to skip entirely (e.g. {'current_chapters'} for uploading list).
-    - 'Tạm dừng' status is always preserved regardless of what the site returns."""
+    - exclude: set of keys to skip entirely.
+    - 'Tạm dừng' status is always preserved."""
     updates = {k: v for k, v in fq.items() if not exclude or k not in exclude}
     if book.get("status") == "Tạm dừng":
         updates.pop("status", None)
     book.update(updates)
 
 
+def maybe_scrape_wiki(book: dict):
+    """Scrape wiki for vi_title if wiki_id present and vi_title missing."""
+    if book.get("wiki_id") and not book.get("vi_title"):
+        wiki = scrape_wiki(book["wiki_id"])
+        book.update(wiki)
+        time.sleep(random.uniform(0.8, 1.5))
+
+
 def scrape_and_apply(bid: str, book: dict, in_uploading: bool, mode: str, failed_ids: list):
-    """Scrape one book and apply result. Appends to failed_ids if scrape fails."""
+    """
+    Scrape one book and apply result.
+
+    Wiki scrape is attempted independently of fanqie result:
+    - If fanqie succeeds → normal flow.
+    - If fanqie fails (bot block / network) → book added to failed_ids,
+      but wiki is still scraped so newly-added books get vi_title populated.
+    """
     PAUSED_EXCLUDE = {"status"}
     fq = scrape_fanqie(bid)
+
     if fq is None:
         failed_ids.append(bid)
+        # Fanqie failed — still try wiki for uploading books missing vi_title
+        if in_uploading:
+            maybe_scrape_wiki(book)
         return
+
     if in_uploading:
         exclude = {"current_chapters"} | (PAUSED_EXCLUDE if mode == "paused" else set())
         apply_fanqie(book, fq, exclude=exclude)
         book["fanqie_chapters"] = fq.get("current_chapters")
-        if book.get("wiki_id") and not book.get("vi_title"):
-            wiki = scrape_wiki(book["wiki_id"])
-            book.update(wiki)
-            time.sleep(1.0)
+        maybe_scrape_wiki(book)
     else:
         apply_fanqie(book, fq, exclude=PAUSED_EXCLUDE if mode == "paused" else None)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', choices=['auto', 'completed', 'paused'], default='auto',
-                        help='auto: scrape ongoing only; completed: scrape completed only; paused: update chapter count + last_updated for Tạm dừng books only')
+    parser.add_argument(
+        '--mode',
+        choices=['auto', 'completed', 'paused', 'retry'],
+        default='auto',
+        help=(
+            'auto: scrape ongoing only; '
+            'completed: scrape completed only; '
+            'paused: update chapter count + last_updated for Tạm dừng books; '
+            'retry: process retry_list.json only, then clear it'
+        ),
+    )
     args = parser.parse_args()
 
     print(f"=== Fanqie Tracker Scraper [{args.mode}] — {datetime.now().isoformat()} ===")
-    waiting = load_json("waiting_list.json")
+    waiting   = load_json("waiting_list.json")
     uploading = load_json("uploading_list.json")
 
     retry_ids = set(load_json(RETRY_FILE))
@@ -251,34 +304,45 @@ def main():
         else:  # auto
             return s not in ("已完结", "Tạm dừng")
 
-    # Build lookup maps for retry pass
-    waiting_map  = {b["fanqie_id"]: b for b in waiting}
+    waiting_map   = {b["fanqie_id"]: b for b in waiting}
     uploading_map = {b["fanqie_id"]: b for b in uploading}
 
-    # ── RETRY PASS: process previously failed books first ──
-    already_scraped = set()
-    if retry_ids:
-        print(f"\n[Retry Pass] Processing {len(retry_ids)} previously failed books...")
+    # ── RETRY-ONLY MODE ──────────────────────────────────────────────────────
+    if args.mode == "retry":
+        if not retry_ids:
+            print("\n[Retry Mode] retry_list.json is empty — nothing to do.")
+            save_json(RETRY_FILE, [])
+            return
+
+        print(f"\n[Retry Mode] Processing {len(retry_ids)} books from retry list...")
         for bid in list(retry_ids):
             book = waiting_map.get(bid) or uploading_map.get(bid)
             if book is None:
                 print(f"  [retry] {bid}: not found in any list, dropping")
-                already_scraped.add(bid)
                 continue
-            scrape_and_apply(bid, book, bid in uploading_map, args.mode, failed_ids)
-            already_scraped.add(bid)
-            time.sleep(1.5)
+            scrape_and_apply(bid, book, bid in uploading_map, "auto", failed_ids)
+            time.sleep(random.uniform(1.0, 2.0))
+
+        save_json("waiting_list.json", waiting)
+        save_json("uploading_list.json", uploading)
+        print(f"  Saved waiting_list.json & uploading_list.json")
+
+        if failed_ids:
+            print(f"\n[Retry Queue] {len(failed_ids)} books still failing, re-saving: {failed_ids}")
+        save_json(RETRY_FILE, failed_ids)
+        print(f"\n=== Done ===")
+        return
+
+    # ── NORMAL MODES (auto / completed / paused) ─────────────────────────────
 
     # ── WAITING LIST ──
     print(f"\n[Waiting List] {len(waiting)} books")
     for book in waiting:
         bid = book["fanqie_id"]
-        if bid in already_scraped:
-            continue
         if not should_scrape(book):
             continue
         scrape_and_apply(bid, book, False, args.mode, failed_ids)
-        time.sleep(1.5)
+        time.sleep(random.uniform(1.0, 2.0))
 
     save_json("waiting_list.json", waiting)
     print(f"  Saved waiting_list.json")
@@ -287,12 +351,10 @@ def main():
     print(f"\n[Uploading List] {len(uploading)} books")
     for book in uploading:
         bid = book["fanqie_id"]
-        if bid in already_scraped:
-            continue
         if not should_scrape(book):
             continue
         scrape_and_apply(bid, book, True, args.mode, failed_ids)
-        time.sleep(1.5)
+        time.sleep(random.uniform(1.0, 2.0))
 
     save_json("uploading_list.json", uploading)
     print(f"  Saved uploading_list.json")
