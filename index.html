@@ -558,7 +558,7 @@ function utf8ToB64(str) {
 }
 async function getFile(filename) {
   try {
-    const data = await ghApi(`/repos/${CFG.repo}/contents/${filename}`);
+    const data = await ghApi(`/repos/${CFG.repo}/contents/${filename}?ref=data`);
     const content = b64ToUtf8(data.content);
     return { data: JSON.parse(content), sha: data.sha };
   } catch(e) {
@@ -567,9 +567,9 @@ async function getFile(filename) {
   }
 }
 async function putFile(filename, content, sha) {
-  const body = { message: `Update ${filename}`, content: utf8ToB64(JSON.stringify(content, null, 2)) };
+  const body = { message: `Update ${filename}`, content: utf8ToB64(JSON.stringify(content, null, 2)), branch: 'data' };
   if (sha) body.sha = sha;
-  return ghApi(`/repos/${CFG.repo}/contents/${filename}`, { method: 'PUT', body: JSON.stringify(body) });
+  return ghApi(`/repos/${CFG.repo}/contents/${filename}?ref=data`, { method: 'PUT', body: JSON.stringify(body) });
 }
 //LOAD DATA 
 async function loadData() {
