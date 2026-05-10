@@ -47,6 +47,7 @@ def make_session() -> requests.Session:
     return session
 
 
+# Module-level sessions — fanqie and wiki are different domains, keep separate.
 FANQIE_SESSION = make_session()
 WIKI_SESSION = make_session()
 
@@ -157,7 +158,7 @@ def scrape_fanqie(book_id: str) -> dict | None:
             # ── Bot block: all values still None → rotate session & retry ──
             if all(v is None for v in result.values()):
                 wait = RETRY_DELAYS[attempt]
-                FANQIE_SESSION = make_session()  # rotate UA + fresh session
+                FANQIE_SESSION = make_session()
                 if attempt < MAX_RETRIES - 1:
                     print(f"  [fanqie] {book_id}: bot block on attempt {attempt+1}/{MAX_RETRIES}, "
                           f"rotating session, retrying in {wait}s...", file=sys.stderr)
@@ -236,15 +237,14 @@ def scrape_and_apply(bid: str, book: dict, in_uploading: bool, mode: str, failed
 
     Wiki scrape is attempted independently of fanqie result:
     - If fanqie succeeds → normal flow.
-    - If fanqie fails (bot block / network) → book added to failed_ids,
-      but wiki is still scraped so newly-added books get vi_title populated.
+    - If fanqie fails → book added to failed_ids,
+      but wiki is still scraped for uploading books missing vi_title.
     """
     PAUSED_EXCLUDE = {"status"}
     fq = scrape_fanqie(bid)
 
     if fq is None:
         failed_ids.append(bid)
-        # Fanqie failed — still try wiki for uploading books missing vi_title
         if in_uploading:
             maybe_scrape_wiki(book)
         return
@@ -335,10 +335,26 @@ def main():
 
     # ── NORMAL MODES (auto / completed / paused) ─────────────────────────────
 
+    # Retry pass first — xử lý các book failed từ lần chạy trước
+    already_scraped = set()
+    if retry_ids:
+        print(f"\n[Retry Pass] Processing {len(retry_ids)} previously failed books...")
+        for bid in list(retry_ids):
+            book = waiting_map.get(bid) or uploading_map.get(bid)
+            if book is None:
+                print(f"  [retry] {bid}: not found in any list, dropping")
+                already_scraped.add(bid)
+                continue
+            scrape_and_apply(bid, book, bid in uploading_map, args.mode, failed_ids)
+            already_scraped.add(bid)
+            time.sleep(random.uniform(1.0, 2.0))
+
     # ── WAITING LIST ──
     print(f"\n[Waiting List] {len(waiting)} books")
     for book in waiting:
         bid = book["fanqie_id"]
+        if bid in already_scraped:
+            continue
         if not should_scrape(book):
             continue
         scrape_and_apply(bid, book, False, args.mode, failed_ids)
@@ -351,6 +367,8 @@ def main():
     print(f"\n[Uploading List] {len(uploading)} books")
     for book in uploading:
         bid = book["fanqie_id"]
+        if bid in already_scraped:
+            continue
         if not should_scrape(book):
             continue
         scrape_and_apply(bid, book, True, args.mode, failed_ids)
