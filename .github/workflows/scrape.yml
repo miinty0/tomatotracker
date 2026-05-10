@@ -30,8 +30,17 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Checkout main (scripts)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
+      - name: Checkout data branch (json files)
+        uses: actions/checkout@v4
+        with:
+          ref: data
+          path: data
 
       - name: Install dependencies
         run: pip install requests beautifulsoup4 --break-system-packages
@@ -57,9 +66,11 @@ jobs:
           fi
 
       - name: Run scraper
-        run: python3 scripts/scraper.py ${{ steps.flags.outputs.args }}
+        working-directory: data
+        run: python3 ../main/scripts/scraper.py ${{ steps.flags.outputs.args }}
 
-      - name: Commit updated data
+      - name: Commit updated data to data branch
+        working-directory: data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
