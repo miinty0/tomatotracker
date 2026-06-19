@@ -25,10 +25,6 @@ concurrency:
 
 permissions:
   contents: write
-
-# ✅ FIX: Đặt IS_RETRY_CRON trực tiếp ở env level của workflow.
-# GitHub Actions evaluates cron schedule context — dùng github.event.schedule
-# để biết chính xác cron nào trigger, không cần parse giờ bằng bash.
 env:
   IS_RETRY_CRON: ${{ github.event.schedule == '0 7 * * *' || github.event.schedule == '0 19 * * *' }}
 
@@ -75,4 +71,23 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add waiting_list.json uploading_list.json retry_list.json
           git diff --staged --quiet || git commit -m "chore: scrape [${{ steps.flags.outputs.label }}] $(TZ='Asia/Ho_Chi_Minh' date +'%Y-%m-%d %H:%M ICT')"
-          for i in 1 2 3; do git push && break || sleep 15; done
+          pushed=false
+          for i in 1 2 3; do
+            if git push; then
+              pushed=true
+              break
+            fi
+            echo "push rejected (attempt $i/3), fetching + rebasing onto latest data branch..."
+            git fetch origin data
+            if ! git rebase origin/data; then
+              echo "::warning::True conflict on attempt $i (same field touched within seconds by both scraper and web UI) — this is rare. Discarding this run's scrape commit to avoid corrupting user data; the next scheduled run will pick these books up again via retry_list.json / normal scrape."
+              git rebase --abort
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$pushed" = false ]; then
+            echo "::error::Could not push scrape results this run (conflict with concurrent web UI edit). No data was corrupted — this run's scrape results were simply discarded; next scheduled run will retry."
+            exit 1
+          fi
