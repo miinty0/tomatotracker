@@ -590,13 +590,31 @@ async function loadData() {
     document.getElementById('refresh-icon').className = '';
   }
 }
-async function saveWaiting() {
-  const { sha } = await getFile('waiting_list.json');
-  await putFile('waiting_list.json', waitingList, sha);
+//RACE-SAFE SAVE
+
+async function saveListWithPatch(filename, patchFn, { retries = 2 } = {}) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const { data: freshList, sha } = await getFile(filename);
+    const merged = patchFn(freshList) || freshList;
+    try {
+      await putFile(filename, merged, sha);
+      return merged;
+    } catch (e) {
+      const isConflict = e.message.includes('409') || e.message.toLowerCase().includes('does not match');
+      if (isConflict && attempt < retries) continue; 
+      throw e;
+    }
+  }
 }
-async function saveUploading() {
-  const { sha } = await getFile('uploading_list.json');
-  await putFile('uploading_list.json', uploadingList, sha);
+async function saveWaiting(patchFn) {
+  const merged = await saveListWithPatch('waiting_list.json', patchFn);
+  waitingList = merged;
+  return merged;
+}
+async function saveUploading(patchFn) {
+  const merged = await saveListWithPatch('uploading_list.json', patchFn);
+  uploadingList = merged;
+  return merged;
 }
 //SCRAPER 
 async function triggerScraper(mode) {
@@ -895,10 +913,11 @@ function updateSaveBar() {
 }
 async function submitInlineUpdates() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  let savedTrans = false;
-  let savedWait = false;
   let addedW = 0, addedT = 0;
   let updatedCount = 0;
+
+  // ── Phase 1: parse intents only
+  const newWaitingBooks = [];
   const wInput = document.getElementById('waiting-input');
   const wRaw = wInput ? wInput.value.trim() : '';
   if (wRaw) {
@@ -909,7 +928,7 @@ async function submitInlineUpdates() {
       const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
       const desired = parseInt(desired_str);
       if (!fanqie_id || isNaN(desired)) { toast(`Lỗi định dạng: ${line}`, 'error'); continue; }
-      if (waitingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
+      if (waitingList.find(b=>b.fanqie_id===fanqie_id) || newWaitingBooks.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
       let desired_date = null;
       if (desired_date_raw) {
         const parsed = parseDesiredDate(desired_date_raw);
@@ -919,13 +938,11 @@ async function submitInlineUpdates() {
           desired_date = `${dd}/${mm}/${parsed.getFullYear()}`;
         }
       }
-      waitingList.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
+      newWaitingBooks.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
       addedW++;
     }
-    wInput.value = '';
-    document.getElementById('add-panel-waiting').classList.remove('open');
-    if (addedW > 0) savedWait = true;
   }
+  const newUploadingBooks = [];
   const tInput = document.getElementById('uploading-input');
   const tRaw = tInput ? tInput.value.trim() : '';
   if (tRaw) {
@@ -936,52 +953,66 @@ async function submitInlineUpdates() {
       const [wiki_id, ch_str, fanqie_id] = parts;
       const uploaded = parseInt(ch_str);
       if (!fanqie_id || isNaN(uploaded)) { toast(`Lỗi định dạng: ${line}`, 'error'); continue; }
-      if (uploadingList.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
-      uploadingList.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
+      if (uploadingList.find(b=>b.fanqie_id===fanqie_id) || newUploadingBooks.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
+      newUploadingBooks.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
       addedT++;
     }
-    tInput.value = '';
-    document.getElementById('add-panel-uploading').classList.remove('open');
-    if (addedT > 0) savedTrans = true;
   }
-  if (pendingUpdates.size > 0) {
-    pendingUpdates.forEach((val, id) => {
-      const book = uploadingList.find(b => b.fanqie_id === id);
-      if (book) { book.uploaded_chapters = val; updatedCount++; }
-    });
-    pendingUpdates.clear();
-    savedTrans = true;
-  }
-  if (pendingTransNotes.size > 0) {
-    pendingTransNotes.forEach((note, id) => {
-      const book = uploadingList.find(b => b.fanqie_id === id);
-      if (book) { book.note = note.trim() || null; updatedCount++; }
-    });
-    pendingTransNotes.clear();
-    savedTrans = true;
-  }
-  if (pendingNotes.size > 0) {
-    pendingNotes.forEach((note, id) => {
-      const book = waitingList.find(b => b.fanqie_id === id);
-      if (book) { book.note = note.trim() || null; updatedCount++; }
-    });
-    pendingNotes.clear();
-    savedWait = true;
-  }
-  if (pendingWaitingUpdates.size > 0) {
-    pendingWaitingUpdates.forEach((updates, id) => {
-      const book = waitingList.find(b => b.fanqie_id === id);
-      if (book) {
-        if (updates.desired_chapters !== undefined) { book.desired_chapters = updates.desired_chapters; updatedCount++; }
-        if (updates.desired_date !== undefined) { book.desired_date = updates.desired_date; updatedCount++; }
-      }
-    });
-    pendingWaitingUpdates.clear();
-    savedWait = true;
-  }
+  const uploadedChEdits = new Map(pendingUpdates);
+  const transNoteEdits  = new Map(pendingTransNotes);
+  const waitingNoteEdits = new Map(pendingNotes);
+  const waitingFieldEdits = new Map(pendingWaitingUpdates);
+
+  const savedWait  = newWaitingBooks.length > 0 || waitingNoteEdits.size > 0 || waitingFieldEdits.size > 0;
+  const savedTrans = newUploadingBooks.length > 0 || uploadedChEdits.size > 0 || transNoteEdits.size > 0;
   if (!savedWait && !savedTrans) return;
-  if (savedWait) await saveWaiting();
-  if (savedTrans) await saveUploading();
+
+  // ── Phase 2: apply intents onto a freshly-fetched list inside the patch fn
+  if (savedWait) {
+    await saveWaiting(fresh => {
+      newWaitingBooks.forEach(b => {
+        if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
+      });
+      waitingNoteEdits.forEach((note, id) => {
+        const book = fresh.find(b => b.fanqie_id === id);
+        if (book) { book.note = note.trim() || null; updatedCount++; }
+      });
+      waitingFieldEdits.forEach((updates, id) => {
+        const book = fresh.find(b => b.fanqie_id === id);
+        if (book) {
+          if (updates.desired_chapters !== undefined) { book.desired_chapters = updates.desired_chapters; updatedCount++; }
+          if (updates.desired_date !== undefined) { book.desired_date = updates.desired_date; updatedCount++; }
+        }
+      });
+      return fresh;
+    });
+  }
+  if (savedTrans) {
+    await saveUploading(fresh => {
+      newUploadingBooks.forEach(b => {
+        if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
+      });
+      uploadedChEdits.forEach((val, id) => {
+        const book = fresh.find(b => b.fanqie_id === id);
+        if (book) { book.uploaded_chapters = val; updatedCount++; }
+      });
+      transNoteEdits.forEach((note, id) => {
+        const book = fresh.find(b => b.fanqie_id === id);
+        if (book) { book.note = note.trim() || null; updatedCount++; }
+      });
+      return fresh;
+    });
+  }
+
+  // Clear UI state + inputs
+  if (savedWait) {
+    pendingNotes.clear(); pendingWaitingUpdates.clear();
+    wInput.value = ''; document.getElementById('add-panel-waiting').classList.remove('open');
+  }
+  if (savedTrans) {
+    pendingUpdates.clear(); pendingTransNotes.clear();
+    tInput.value = ''; document.getElementById('add-panel-uploading').classList.remove('open');
+  }
   updateSaveBar();
   if (savedWait) renderWaiting();
   if (savedTrans) renderUploading();
@@ -1244,16 +1275,26 @@ async function submitMove() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
   const wikiLines = document.getElementById('move-wiki-input').value.split('\n');
-  for (let i=0; i<books.length; i++) {
-    const book = books[i];
-    const wiki_id = (wikiLines[i]||'').trim()||null;
-    if (uploadingList.find(b=>b.fanqie_id===book.fanqie_id)) continue;
-    uploadingList.push({ vi_title: book.vi_title, wiki_id, fanqie_id: book.fanqie_id, uploaded_chapters: 0, fanqie_chapters: book.current_chapters, status: book.status, last_updated: book.last_updated });
-    waitingList = waitingList.filter(b=>b.fanqie_id!==book.fanqie_id);
-  }
+  // Build the move intent (fanqie_id + wiki_id pairs) from the local snapshot
+  const moves = books.map((book, i) => ({
+    fanqie_id: book.fanqie_id,
+    vi_title: book.vi_title,
+    wiki_id: (wikiLines[i]||'').trim()||null,
+  }));
   selectedWaiting.clear();
-  await saveWaiting();
-  await saveUploading();
+  let movedFromWaiting = [];
+  await saveWaiting(fresh => {
+    movedFromWaiting = fresh.filter(b => moves.find(m => m.fanqie_id === b.fanqie_id));
+    return fresh.filter(b => !moves.find(m => m.fanqie_id === b.fanqie_id));
+  });
+  await saveUploading(fresh => {
+    moves.forEach(m => {
+      if (fresh.find(b=>b.fanqie_id===m.fanqie_id)) return; 
+      const src = movedFromWaiting.find(b => b.fanqie_id === m.fanqie_id);
+      fresh.push({ vi_title: m.vi_title, wiki_id: m.wiki_id, fanqie_id: m.fanqie_id, uploaded_chapters: 0, fanqie_chapters: src?.current_chapters ?? null, status: src?.status ?? null, last_updated: src?.last_updated ?? null });
+    });
+    return fresh;
+  });
   closeMovePanel(); renderAll();
   toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
 }
@@ -1267,6 +1308,7 @@ async function bulkPause(list) {
   const alreadyPaused = books.filter(b=>b.status==='Tạm dừng');
   const toResume = alreadyPaused.length === books.length;
   const actionLabel = toResume ? 'Bỏ tạm dừng' : 'Tạm dừng';
+  const ids = new Set(set);
   showModal(
     `${actionLabel} ${set.size} truyện?`,
     toResume
@@ -1274,11 +1316,19 @@ async function bulkPause(list) {
       : `Status của các truyện sẽ được đặt thành "Tạm dừng" và sẽ không scrape hàng ngày nữa.`,
     async () => {
       if (list==='waiting') {
-        waitingList.forEach(b => { if (set.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
-        set.clear(); await saveWaiting(); renderWaiting();
+        set.clear();
+        await saveWaiting(fresh => {
+          fresh.forEach(b => { if (ids.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
+          return fresh;
+        });
+        renderWaiting();
       } else {
-        uploadingList.forEach(b => { if (set.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
-        set.clear(); await saveUploading(); renderUploading();
+        set.clear();
+        await saveUploading(fresh => {
+          fresh.forEach(b => { if (ids.has(b.fanqie_id)) b.status = toResume ? null : 'Tạm dừng'; });
+          return fresh;
+        });
+        renderUploading();
       }
       updateSelectionUI();
       toast(`${actionLabel} ${books.length} truyện thành công.`, 'success');
@@ -1290,12 +1340,13 @@ function bulkDelete(list) {
   const set = list==='waiting' ? selectedWaiting : selectedUploading;
   if (!set.size) return;
   showModal(`Delete ${set.size} book(s)?`, `This will permanently remove them from the ${list} list.`, async () => {
+    const ids = new Set(set);
     if (list==='waiting') {
-      waitingList = waitingList.filter(b=>!set.has(b.fanqie_id));
-      set.clear(); await saveWaiting();
+      set.clear();
+      await saveWaiting(fresh => fresh.filter(b => !ids.has(b.fanqie_id)));
     } else {
-      uploadingList = uploadingList.filter(b=>!set.has(b.fanqie_id));
-      set.clear(); await saveUploading();
+      set.clear();
+      await saveUploading(fresh => fresh.filter(b => !ids.has(b.fanqie_id)));
     }
     renderAll(); toast('Deleted.', 'success');
   });
