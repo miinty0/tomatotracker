@@ -727,6 +727,16 @@ function removeAccents(str) {
 function esc(str) {
   return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function slugifyVi40(str) {
+  if (!str) return '';
+  return removeAccents(str).toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40);
+}
+function buildWikiUrl(book) {
+  if (!book || !book.wiki_id) return null;
+  const wikiId = book.wiki_id.replace(/~/g,'%7E');
+  const slug = slugifyVi40(book.vi_title);
+  return `${CFG.wiki_url}${slug ? slug+'-' : ''}${wikiId}/chinh-sua`;
+}
 function escJs(str) {
   return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
@@ -1102,7 +1112,7 @@ function renderWaiting() {
     const titleHtml = hl(book.vi_title||'', searchWaiting) || '<em style="color:var(--text3)">Chưa có tên</em>';
     const idHtml = hl(book.fanqie_id||'', searchWaiting);
     const titleLink = book.wiki_id
-      ? `<a href="${CFG.wiki_url}${book.wiki_id.replace(/~/g,'%7E')}" target="_blank" class="link">${titleHtml}</a>`
+      ? `<a href="${buildWikiUrl(book)}" target="_blank" class="link">${titleHtml}</a>`
       : titleHtml;
 return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id="${esc(book.fanqie_id)}">
       <td class="check-col"><input type="checkbox" ${selectedWaiting.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('waiting','${escJs(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('waiting','${escJs(book.fanqie_id)}',!this.checked,event);}"></td>
@@ -1159,6 +1169,7 @@ function renderUploading() {
   }
   tbody.innerHTML = arr.map(book => {
     const wikiId = book.wiki_id ? book.wiki_id.replace(/~/g,'%7E') : null;
+    const wikiUrl = buildWikiUrl(book);
     const displayVal = pendingUpdates.has(book.fanqie_id) ? pendingUpdates.get(book.fanqie_id) : (book.uploaded_chapters||0);
     const isPending = pendingUpdates.has(book.fanqie_id);
     const safeTitle = esc(book.vi_title || book.fanqie_id);
@@ -1172,7 +1183,7 @@ return `<tr class="${selectedUploading.has(book.fanqie_id)?'selected':''}" data-
       <td class="check-col"><input type="checkbox" tabindex="-1" ${selectedUploading.has(book.fanqie_id)?'checked':''} onchange="toggleSelect('uploading','${escJs(book.fanqie_id)}',this.checked,event)" onclick="if(event.shiftKey){event.preventDefault();toggleSelect('uploading','${escJs(book.fanqie_id)}',!this.checked,event);}"></td>
       <td class="title-cell" data-fid="${esc(book.fanqie_id)}" data-list="uploading">
         <div class="title-main" title="${safeTitle}">${titleHtml}</div>
-        <div class="title-id">${wikiId ? `<a href="${CFG.wiki_url}${wikiId}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'}/<span class="link" style="cursor:pointer" onclick="copyFanqieLink('${escJs(book.fanqie_id)}')" title="Copy link 🍅" tabindex="-1">${idHtml}</span></div>
+        <div class="title-id">${wikiId ? `<a href="${wikiUrl}" target="_blank" class="link" tabindex="-1">${esc(book.wiki_id)}</a>` : '<span style="color:var(--text3)">—</span>'}/<span class="link" style="cursor:pointer" onclick="copyFanqieLink('${escJs(book.fanqie_id)}')" title="Copy link 🍅" tabindex="-1">${idHtml}</span></div>
         ${(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note) ? `<div class="note" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Click để sửa note">${esc(pendingTransNotes.has(book.fanqie_id) ? pendingTransNotes.get(book.fanqie_id) : book.note)}</div>` : `<span class="note-add" onclick="toggleNoteEdit('uploading','${escJs(book.fanqie_id)}')" title="Thêm note">note</span>`}
       </td>
       <td class="mono">${book.fanqie_chapters||'?'}</td>
