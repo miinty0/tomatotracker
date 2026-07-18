@@ -236,26 +236,14 @@ def main():
 
     failed_ids = []
 
-    def should_scrape(book):
-        s = (book.get("status") or "").strip()
-        if args.mode == "completed":
-            if s != "已完结":
-                return False
-            last_updated = book.get("last_updated")
-            if last_updated:
-                try:
-                    lu_dt = datetime.strptime(last_updated[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                    age_days = (datetime.now(tz=timezone.utc) - lu_dt).days
-                    if age_days > 365:
-                        print(f"  [skip] {book.get('fanqie_id','?')}: last_updated {last_updated[:10]} is {age_days}d ago (>12 months)")
-                        return False
-                except Exception:
-                    pass
-            return True
-        elif args.mode == "paused":
-            return s == "Tạm dừng"
-        else:  # auto
-            return s not in ("已完结", "Tạm dừng")
+   def should_scrape(book):
+    s = (book.get("status") or "").strip()
+    if args.mode == "completed":
+        return s == "已完结"
+    elif args.mode == "paused":
+        return s == "Tạm dừng"
+    else:  # auto
+        return s not in ("已完结", "Tạm dừng")
 
     # Build lookup maps for retry pass
     waiting_map  = {b["fanqie_id"]: b for b in waiting}
