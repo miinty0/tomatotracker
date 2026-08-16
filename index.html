@@ -334,6 +334,7 @@
   <div class="toolbar">
     <div class="toolbar-left">
       <button class="btn" onclick="toggleAddPanel('uploading')">+ Add</button>
+      <button class="btn" onclick="toggleUploadedUpdatePanel()">+Up</button>
       <span class="select-count" id="trans-sel-count" style="display:none"></span>
       <button class="btn ghost" id="trans-desel-btn" onclick="deselectAll('uploading')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
@@ -343,6 +344,7 @@
         <div class="pill pill-green" data-filter="ongoing" onclick="setUploadingFilter('ongoing')">🟩 Còn tiếp</div>
         <div class="pill pill-orange" data-filter="completed" onclick="setUploadingFilter('completed')">🟨 Hoàn thành</div>
         <div class="pill pill-gray" data-filter="paused" onclick="setUploadingFilter('paused')">⏸ Tạm dừng</div>
+        <div class="pill" data-filter="notes" onclick="setUploadingFilter('notes')">📝 Có note</div>
       </div>
     </div>
     <div class="toolbar-right">
@@ -377,6 +379,15 @@
     <div class="actions">
       <button class="btn primary" onclick="submitInlineUpdates()">Save & Add Books</button>
       <button class="btn" onclick="document.getElementById('add-panel-uploading').classList.remove('open'); document.getElementById('uploading-input').value=''; updateSaveBar();">Cancel</button>
+    </div>
+  </div>
+  <div class="add-panel" id="update-panel-uploading">
+    <h4>Bulk Update Uploaded Chapters</h4>
+    <textarea id="uploaded-update-input" oninput="updateSaveBar()" placeholder="aTrGYzu26zL229Aj | 542"></textarea>
+    <div class="hint">Format: Wiki ID | Uploaded Chapters (one per line). Only existing books are updated.</div>
+    <div class="actions">
+      <button class="btn primary" onclick="submitInlineUpdates()">Update Chapters</button>
+      <button class="btn" onclick="closeUploadedUpdatePanel()">Cancel</button>
     </div>
   </div>
   <div class="thead-sticky-wrap" id="uploading-thead-wrap">
@@ -906,25 +917,33 @@ function toggleNoteEdit(list, fanqieId) {
 function updateSaveBar() {
   const wRaw = document.getElementById('waiting-input').value.trim();
   const tRaw = document.getElementById('uploading-input').value.trim();
+  const uRaw = document.getElementById('uploaded-update-input').value.trim();
   const addedW = wRaw ? wRaw.split('\n').filter(l=>l.trim()).length : 0;
   const addedT = tRaw ? tRaw.split('\n').filter(l=>l.trim()).length : 0;
+  const bulkUp = uRaw ? uRaw.split('\n').filter(l=>l.trim()).length : 0;
   const totalAdd = addedW + addedT;
   const n = pendingUpdates.size + pendingWaitingUpdates.size + pendingNotes.size + pendingTransNotes.size;
   let msg = [];
   if (n > 0) msg.push(`✏️ <strong>${n}</strong> unsaved update(s)`);
   if (totalAdd > 0) msg.push(`➕ <strong>${totalAdd}</strong> book(s) to add`);
+  if (bulkUp > 0) msg.push(`⬆️ <strong>${bulkUp}</strong> chapter update(s)`);
   const countEl = document.getElementById('pending-count');
   if (countEl) countEl.innerHTML = msg.join(' | ');
-  document.getElementById('inline-save-bar').classList.toggle('open', n > 0 || totalAdd > 0);
+  document.getElementById('inline-save-bar').classList.toggle('open', n > 0 || totalAdd > 0 || bulkUp > 0);
   const wEl = document.getElementById('waiting-input');
   if (wEl) wEl.classList.toggle('pending', addedW > 0);
   const tEl = document.getElementById('uploading-input');
   if (tEl) tEl.classList.toggle('pending', addedT > 0);
+  const uEl = document.getElementById('uploaded-update-input');
+  if (uEl) uEl.classList.toggle('pending', bulkUp > 0);
 }
 async function submitInlineUpdates() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   let addedW = 0, addedT = 0;
   let updatedCount = 0;
+  let bulkUpdatedCount = 0;
+  let bulkMissingIds = [];
+  let bulkInvalidCount = 0;
 
   // ── Phase 1: parse intents only
   const newWaitingBooks = [];
@@ -968,14 +987,36 @@ async function submitInlineUpdates() {
       addedT++;
     }
   }
+  const bulkWikiEdits = new Map();
+  const uInput = document.getElementById('uploaded-update-input');
+  const uRaw = uInput ? uInput.value.trim() : '';
+  if (uRaw) {
+    const lines = uRaw.split('\n').map(l=>l.trim()).filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split('|').map(p=>p.trim());
+      if (parts.length !== 2 || !parts[0] || !/^\d+$/.test(parts[1])) {
+        bulkInvalidCount++;
+        continue;
+      }
+      const uploaded = Number(parts[1]);
+      if (!Number.isSafeInteger(uploaded)) {
+        bulkInvalidCount++;
+        continue;
+      }
+      bulkWikiEdits.set(parts[0], uploaded);
+    }
+  }
   const uploadedChEdits = new Map(pendingUpdates);
   const transNoteEdits  = new Map(pendingTransNotes);
   const waitingNoteEdits = new Map(pendingNotes);
   const waitingFieldEdits = new Map(pendingWaitingUpdates);
 
   const savedWait  = newWaitingBooks.length > 0 || waitingNoteEdits.size > 0 || waitingFieldEdits.size > 0;
-  const savedTrans = newUploadingBooks.length > 0 || uploadedChEdits.size > 0 || transNoteEdits.size > 0;
-  if (!savedWait && !savedTrans) return;
+  const savedTrans = newUploadingBooks.length > 0 || uploadedChEdits.size > 0 || transNoteEdits.size > 0 || bulkWikiEdits.size > 0;
+  if (!savedWait && !savedTrans) {
+    if (bulkInvalidCount > 0) toast(`Không có dòng hợp lệ. Bỏ qua ${bulkInvalidCount} dòng lỗi.`, 'error');
+    return;
+  }
 
   // ── Phase 2: apply intents onto a freshly-fetched list inside the patch fn
   if (savedWait) {
@@ -999,6 +1040,8 @@ async function submitInlineUpdates() {
   }
   if (savedTrans) {
     await saveUploading(fresh => {
+      bulkUpdatedCount = 0;
+      bulkMissingIds = [];
       newUploadingBooks.forEach(b => {
         if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
       });
@@ -1009,6 +1052,19 @@ async function submitInlineUpdates() {
       transNoteEdits.forEach((note, id) => {
         const book = fresh.find(b => b.fanqie_id === id);
         if (book) { book.note = note.trim() || null; updatedCount++; }
+      });
+      bulkWikiEdits.forEach((val, wikiId) => {
+        const books = fresh.filter(b => String(b.wiki_id || '').trim() === wikiId);
+        if (!books.length) {
+          bulkMissingIds.push(wikiId);
+          return;
+        }
+        books.forEach(book => {
+          if (book.uploaded_chapters !== val) {
+            book.uploaded_chapters = val;
+            bulkUpdatedCount++;
+          }
+        });
       });
       return fresh;
     });
@@ -1022,6 +1078,7 @@ async function submitInlineUpdates() {
   if (savedTrans) {
     pendingUpdates.clear(); pendingTransNotes.clear();
     tInput.value = ''; document.getElementById('add-panel-uploading').classList.remove('open');
+    uInput.value = ''; document.getElementById('update-panel-uploading').classList.remove('open');
   }
   updateSaveBar();
   if (savedWait) renderWaiting();
@@ -1030,7 +1087,12 @@ async function submitInlineUpdates() {
   const totalAdd = addedW + addedT;
   if (totalAdd > 0) msgs.push(`Thêm ${totalAdd} truyện`);
   if (updatedCount > 0) msgs.push(`Sửa ${updatedCount} mục`);
-  toast('Đã lưu thành công: ' + msgs.join(' và ') + '.', 'success');
+  if (bulkUpdatedCount > 0) msgs.push(`cập nhật chương cho ${bulkUpdatedCount} truyện`);
+  if (!msgs.length) msgs.push('không có giá trị nào thay đổi');
+  const warnings = [];
+  if (bulkMissingIds.length > 0) warnings.push(`không tìm thấy ${bulkMissingIds.length} wiki_id`);
+  if (bulkInvalidCount > 0) warnings.push(`bỏ qua ${bulkInvalidCount} dòng lỗi`);
+  toast(`Đã lưu: ${msgs.join(', ')}.${warnings.length ? ' ' + warnings.join('; ') + '.' : ''}`, warnings.length ? 'error' : 'success');
 }
 function discardInlineUpdates() {
   pendingUpdates.clear();
@@ -1041,8 +1103,11 @@ function discardInlineUpdates() {
   if(wInput) wInput.value = '';
   const tInput = document.getElementById('uploading-input');
   if(tInput) tInput.value = '';
+  const uInput = document.getElementById('uploaded-update-input');
+  if(uInput) uInput.value = '';
   document.getElementById('add-panel-waiting').classList.remove('open');
   document.getElementById('add-panel-uploading').classList.remove('open');
+  document.getElementById('update-panel-uploading').classList.remove('open');
   updateSaveBar();
   renderAll();
 }
@@ -1063,6 +1128,12 @@ function sortedUploading() {
     }
     if (uploadingFilter === 'paused') {
       return b.status === 'Tạm dừng';
+    }
+    if (uploadingFilter === 'notes') {
+      const note = pendingTransNotes.has(b.fanqie_id)
+        ? pendingTransNotes.get(b.fanqie_id)
+        : b.note;
+      return String(note || '').trim().length > 0;
     }
     return true;
   });
@@ -1269,7 +1340,23 @@ function updateSelectionUI() {
 }
 //ADD PANELS 
 function toggleAddPanel(list) {
-  document.getElementById(`add-panel-${list}`).classList.toggle('open');
+  const panel = document.getElementById(`add-panel-${list}`);
+  if (list === 'uploading') document.getElementById('update-panel-uploading').classList.remove('open');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) panel.querySelector('textarea')?.focus();
+  requestAnimationFrame(updateTheadTop);
+}
+function toggleUploadedUpdatePanel() {
+  const panel = document.getElementById('update-panel-uploading');
+  document.getElementById('add-panel-uploading').classList.remove('open');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) document.getElementById('uploaded-update-input').focus();
+  requestAnimationFrame(updateTheadTop);
+}
+function closeUploadedUpdatePanel() {
+  document.getElementById('update-panel-uploading').classList.remove('open');
+  document.getElementById('uploaded-update-input').value = '';
+  updateSaveBar();
   requestAnimationFrame(updateTheadTop);
 }
 //MOVE TO UPLOADING 
@@ -1383,11 +1470,13 @@ function toast(msg, type='') {
 }
 //UNSAVED CHANGES WARNING
 function hasUnsavedChanges() {
-  if (pendingUpdates.size > 0 || pendingWaitingUpdates.size > 0) return true;
+  if (pendingUpdates.size > 0 || pendingWaitingUpdates.size > 0 || pendingNotes.size > 0 || pendingTransNotes.size > 0) return true;
   const waitingInput = document.getElementById('waiting-input');
   const uploadingInput = document.getElementById('uploading-input');
+  const uploadedUpdateInput = document.getElementById('uploaded-update-input');
   if (waitingInput && waitingInput.value.trim()) return true;
   if (uploadingInput && uploadingInput.value.trim()) return true;
+  if (uploadedUpdateInput && uploadedUpdateInput.value.trim()) return true;
   return false;
 }
 window.addEventListener('beforeunload', e => {
