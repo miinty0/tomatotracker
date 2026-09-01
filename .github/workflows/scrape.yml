@@ -16,6 +16,7 @@ on:
           - auto
           - completed
           - paused
+          - new-only
           - retry-only
         default: auto
 
