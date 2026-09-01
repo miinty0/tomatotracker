@@ -219,7 +219,13 @@
     <div class="tab" data-tab="settings" onclick="switchTab('settings')">Settings</div>
   </div>
   <div class="header-right">
-    <button class="btn" id="scrape-btn-auto" onclick="triggerScraper('auto')">▶ Ongoing</button><button class="btn" id="scrape-btn-completed" onclick="triggerScraper('completed')">▶ Completed</button>
+    <select class="btn" id="scrape-mode-select" onchange="triggerScraper(this.value)" title="Chọn chế độ scrape">
+      <option value="">▶ Scrape</option>
+      <option value="auto">Ongoing</option>
+      <option value="completed">Completed</option>
+      <option value="paused">Paused</option>
+      <option value="new-only">New only</option>
+    </select>
     <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span></button>
   </div>
 </header>
@@ -629,21 +635,30 @@ async function saveUploading(patchFn) {
 }
 //SCRAPER 
 async function triggerScraper(mode) {
-  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
-  const btnId = mode === 'completed' ? 'scrape-btn-completed' : 'scrape-btn-auto';
-  const label = mode === 'completed' ? '▶ Completed' : '▶ Ongoing';
-  const btn = document.getElementById(btnId);
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Triggering…';
+  if (!mode) return;
+  const select = document.getElementById('scrape-mode-select');
+  const placeholder = select.options[0];
+  if (!CFG.repo || !CFG.token) {
+    select.value = '';
+    toast('Configure GitHub first.', 'error');
+    return;
+  }
+  select.value = '';
+  select.disabled = true;
+  placeholder.textContent = '⏳ Triggering…';
   try {
     await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
       method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { mode } })
     });
     toast(`Scraper [${mode}] triggered thành công!`, 'success');
-    setTimeout(() => { btn.disabled = false; btn.innerHTML = label; }, 3000);
+    setTimeout(() => {
+      select.disabled = false;
+      placeholder.textContent = '▶ Scrape';
+    }, 3000);
   } catch(e) {
     toast('Failed to trigger: ' + e.message, 'error');
-    btn.disabled = false; btn.innerHTML = label;
+    select.disabled = false;
+    placeholder.textContent = '▶ Scrape';
   }
 }
 //TABS 
