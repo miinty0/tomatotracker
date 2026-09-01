@@ -214,10 +214,17 @@ def scrape_and_apply(bid: str, book: dict, in_uploading: bool, mode: str, failed
         apply_fanqie(book, fq, exclude=PAUSED_EXCLUDE if mode == "paused" else None)
 
 
+def is_new_book(book: dict) -> bool:
+    """A book added from index.html is new until its Vietnamese title is filled."""
+    return book.get("vi_title") in (None, "")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['auto', 'completed', 'paused', 'new-only'], default='auto',
-                        help='auto: scrape ongoing only; completed: scrape completed only; paused: update chapter count + last_updated for Tạm dừng books only; new-only: only scrape uploading books whose vi_title is empty')
+                        help='auto: scrape ongoing only; completed: scrape completed only; '
+                             'paused: update chapter count + last_updated for Tạm dừng books only; '
+                             'new-only: scrape uploading books whose vi_title is null or empty')
     parser.add_argument('--retry-only', action='store_true',
                         help='Only process the retry list, then exit (used for scheduled retry runs)')
     args = parser.parse_args()
@@ -226,8 +233,8 @@ def main():
     waiting = load_json("waiting_list.json")
     uploading = load_json("uploading_list.json")
 
-    retry_ids = set(load_json(RETRY_FILE))
-    original_retry_ids = set(retry_ids)
+    retry_queue = load_json(RETRY_FILE)
+    retry_ids = set(retry_queue)
     if retry_ids:
         print(f"\n[Retry Queue] {len(retry_ids)} books from previous failed run: {retry_ids}")
 
@@ -237,15 +244,45 @@ def main():
 
     failed_ids = []
 
-    def is_new_incomplete(book):
-        """Treat vi_title as the marker for a newly-added book that still needs enrichment."""
-        return book.get("vi_title") in (None, "")
+    # ── NEW-ONLY: uploading books without vi_title; leave all other data alone ──
+    if args.mode == "new-only" and not args.retry_only:
+        new_books = [book for book in uploading if is_new_book(book)]
+        uploading_map = {book["fanqie_id"]: book for book in uploading}
+        target_ids = {book["fanqie_id"] for book in new_books}
+
+        # Retry only targeted new books. Retry entries belonging to all other
+        # modes/books must survive this run unchanged.
+        targeted_retries = [bid for bid in retry_queue if bid in target_ids]
+        preserved_retries = [bid for bid in retry_queue if bid not in target_ids]
+        already_scraped = set()
+
+        print(f"\n[New Only] {len(new_books)} uploading book(s) without vi_title")
+        if targeted_retries:
+            print(f"[New Only Retry] Processing {len(targeted_retries)} targeted retry book(s)...")
+            for bid in targeted_retries:
+                scrape_and_apply(bid, uploading_map[bid], True, args.mode, failed_ids)
+                already_scraped.add(bid)
+                time.sleep(1.5)
+
+        for book in new_books:
+            bid = book["fanqie_id"]
+            if bid in already_scraped:
+                continue
+            scrape_and_apply(bid, book, True, args.mode, failed_ids)
+            time.sleep(1.5)
+
+        save_json("uploading_list.json", uploading)
+        final_retries = preserved_retries + [bid for bid in failed_ids if bid not in preserved_retries]
+        save_json(RETRY_FILE, final_retries)
+        print("  Saved uploading_list.json")
+        print(f"  Preserved {len(preserved_retries)} unrelated retry item(s)")
+        print(f"  {len(failed_ids)} new-only book(s) failed and remain in retry_list.json")
+        print("\n=== Done ===")
+        return
 
     def should_scrape(book):
         s = (book.get("status") or "").strip()
 
-        if args.mode == "new-only":
-            return is_new_incomplete(book)
         if args.mode == "completed":
             return s == "已完结"
         elif args.mode == "paused":
@@ -256,11 +293,10 @@ def main():
     # Build lookup maps for retry pass
     waiting_map  = {b["fanqie_id"]: b for b in waiting}
     uploading_map = {b["fanqie_id"]: b for b in uploading}
-    new_only_ids = {b["fanqie_id"] for b in uploading if is_new_incomplete(b)}
 
     # ── RETRY PASS: process previously failed books first ──
     already_scraped = set()
-    if retry_ids and args.mode != "new-only":
+    if retry_ids:
         print(f"\n[Retry Pass] Processing {len(retry_ids)} previously failed books...")
         for bid in list(retry_ids):
             book = waiting_map.get(bid) or uploading_map.get(bid)
@@ -271,8 +307,6 @@ def main():
             scrape_and_apply(bid, book, bid in uploading_map, args.mode, failed_ids)
             already_scraped.add(bid)
             time.sleep(1.5)
-    elif retry_ids and args.mode == "new-only":
-        print("\n[New-Only] Skipping the general retry pass; unrelated retry IDs are preserved untouched.")
 
     if args.retry_only:
         save_json("waiting_list.json", waiting)
@@ -284,21 +318,18 @@ def main():
         return
 
     # ── WAITING LIST ──
-    if args.mode == "new-only":
-        print(f"\n[Waiting List] skipped in new-only mode ({len(waiting)} books untouched)")
-    else:
-        print(f"\n[Waiting List] {len(waiting)} books")
-        for book in waiting:
-            bid = book["fanqie_id"]
-            if bid in already_scraped:
-                continue
-            if not should_scrape(book):
-                continue
-            scrape_and_apply(bid, book, False, args.mode, failed_ids)
-            time.sleep(1.5)
+    print(f"\n[Waiting List] {len(waiting)} books")
+    for book in waiting:
+        bid = book["fanqie_id"]
+        if bid in already_scraped:
+            continue
+        if not should_scrape(book):
+            continue
+        scrape_and_apply(bid, book, False, args.mode, failed_ids)
+        time.sleep(1.5)
 
-        save_json("waiting_list.json", waiting)
-        print(f"  Saved waiting_list.json")
+    save_json("waiting_list.json", waiting)
+    print(f"  Saved waiting_list.json")
 
     # ── UPLOADING LIST ──
     print(f"\n[Uploading List] {len(uploading)} books")
@@ -314,16 +345,9 @@ def main():
     save_json("uploading_list.json", uploading)
     print(f"  Saved uploading_list.json")
 
-    if args.mode == "new-only":
-        next_retry_ids = (original_retry_ids - new_only_ids) | set(failed_ids)
-        if failed_ids:
-            print(f"\n[Retry Queue] {len(failed_ids)} new-only book(s) failed: {failed_ids}")
-        save_json(RETRY_FILE, sorted(next_retry_ids))
-        print(f"[Retry Queue] Preserved {len(next_retry_ids)} total retry ID(s).")
-    else:
-        if failed_ids:
-            print(f"\n[Retry Queue] {len(failed_ids)} books failed, saving for next run: {failed_ids}")
-        save_json(RETRY_FILE, failed_ids)
+    if failed_ids:
+        print(f"\n[Retry Queue] {len(failed_ids)} books failed, saving for next run: {failed_ids}")
+    save_json(RETRY_FILE, failed_ids)
 
     print(f"\n=== Done ===")
 
