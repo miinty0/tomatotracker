@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -264,6 +265,7 @@
     <div class="toolbar-left">
       <button class="btn" onclick="toggleAddPanel('waiting')">+ Add</button>
       <span class="select-count" id="waiting-sel-count" style="display:none"></span>
+      <button class="btn" id="waiting-copy-btn" onclick="copySelectedFanqieIds('waiting')" style="display:none">📋 Copy ID</button>
       <button class="btn ghost" id="waiting-desel-btn" onclick="deselectAll('waiting')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="waiting-del-btn" onclick="bulkDelete('waiting')" style="display:none">🗑 Delete</button>
       <button class="btn" id="waiting-pause-btn" onclick="bulkPause('waiting')" style="display:none">⏸ Tạm dừng</button>
@@ -342,6 +344,7 @@
       <button class="btn" onclick="toggleAddPanel('uploading')">+ Add</button>
       <button class="btn" onclick="toggleUploadedUpdatePanel()">+Up</button>
       <span class="select-count" id="trans-sel-count" style="display:none"></span>
+      <button class="btn" id="trans-copy-btn" onclick="copySelectedFanqieIds('uploading')" style="display:none">📋 Copy ID</button>
       <button class="btn ghost" id="trans-desel-btn" onclick="deselectAll('uploading')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
       <button class="btn" id="trans-pause-btn" onclick="bulkPause('uploading')" style="display:none">⏸ Tạm dừng</button>
@@ -1338,10 +1341,18 @@ function deselectAll(list) {
   else { selectedUploading.clear(); renderUploading(); }
   updateSelectionUI();
 }
+function copySelectedFanqieIds(list) {
+  const ids = [...(list === 'waiting' ? selectedWaiting : selectedUploading)];
+  if (!ids.length) return;
+  navigator.clipboard.writeText(ids.join('|'))
+    .then(() => toast(`Đã copy ${ids.length} fanqie_id`, 'success'))
+    .catch(() => toast('Copy thất bại', 'error'));
+}
 function updateSelectionUI() {
   const wc = selectedWaiting.size;
   document.getElementById('waiting-sel-count').textContent = `${wc} selected`;
   document.getElementById('waiting-sel-count').style.display = wc ? 'inline-flex' : 'none';
+  document.getElementById('waiting-copy-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-desel-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-del-btn').style.display = wc ? 'inline-flex' : 'none';
   document.getElementById('waiting-pause-btn').style.display = wc ? 'inline-flex' : 'none';
@@ -1350,6 +1361,7 @@ function updateSelectionUI() {
   const tc = selectedUploading.size;
   document.getElementById('trans-sel-count').textContent = `${tc} selected`;
   document.getElementById('trans-sel-count').style.display = tc ? 'inline-flex' : 'none';
+  document.getElementById('trans-copy-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-desel-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-del-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-pause-btn').style.display = tc ? 'inline-flex' : 'none';
