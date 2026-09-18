@@ -1,10 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tomato Tracker</title>
+<!-- Safety patch 2026-09-18: unique fanqie/wiki validation + expanded error popup -->
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -196,10 +196,18 @@
   .pill-gray.active { background: rgba(136,150,170,0.12); border-color: var(--text2); color: var(--text); }
   .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #toast { position: fixed; bottom: 70px; right: 16px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 14px; font-size: 12px; z-index: 400; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 300px; }
+  #toast { position: fixed; bottom: 70px; right: 16px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 14px; font-size: 12px; z-index: 400; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 360px; white-space: pre-wrap; word-break: break-word; line-height: 1.45; }
   #toast.show { display: block; animation: fadeIn 0.2s; }
   #toast.success { border-color: var(--green); }
-  #toast.error { border-color: var(--red); }
+  #toast.error {
+    border-color: var(--red);
+    width: min(680px, calc(100vw - 32px));
+    max-width: min(680px, calc(100vw - 32px));
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    cursor: pointer;
+  }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   .alert-banner { background: rgba(245,197,66,0.08); border: 1px solid rgba(245,197,66,0.25); border-radius: 5px; padding: 8px 12px; margin-bottom: 0; font-size: 11px; color: var(--yellow); display: flex; align-items: center; gap: 6px; position: sticky; top: var(--toolbar-bottom, 88px); z-index: 48; }
   #token-setup, #url-setup { background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
@@ -603,7 +611,16 @@ async function loadData() {
     pendingWaitingUpdates.clear();
     updateSaveBar();
     renderAll();
-    toast('Data loaded.', 'success');
+    const dataIssues = getUploadingDataIssues(uploadingList);
+    if (hasUploadingDataIssues(dataIssues)) {
+      showUploadingIssues(
+        '⚠️ DATA WARNING — uploading_list.json đang có ID trùng',
+        dataIssues,
+        'Dữ liệu vẫn được load, nhưng nên sửa các record này trước khi tiếp tục lưu thay đổi.'
+      );
+    } else {
+      toast('Data loaded.', 'success');
+    }
   } catch(e) {
     toast('Load failed: ' + e.message, 'error');
   } finally {
@@ -631,8 +648,109 @@ async function saveWaiting(patchFn) {
   waitingList = merged;
   return merged;
 }
+function getUploadingDataIssues(list) {
+  const fanqieMap = new Map();
+  const wikiMap = new Map();
+
+  (Array.isArray(list) ? list : []).forEach((book, index) => {
+    const fanqieId = String(book?.fanqie_id ?? '').trim();
+    const wikiId = String(book?.wiki_id ?? '').trim();
+    const info = {
+      index,
+      fanqie_id: fanqieId || null,
+      wiki_id: wikiId || null,
+      vi_title: book?.vi_title || null
+    };
+
+    if (fanqieId) {
+      if (!fanqieMap.has(fanqieId)) fanqieMap.set(fanqieId, []);
+      fanqieMap.get(fanqieId).push(info);
+    }
+    if (wikiId) {
+      if (!wikiMap.has(wikiId)) wikiMap.set(wikiId, []);
+      wikiMap.get(wikiId).push(info);
+    }
+  });
+
+  const duplicateFanqie = [...fanqieMap.entries()]
+    .filter(([, books]) => books.length > 1)
+    .map(([id, books]) => ({ id, books }));
+  const duplicateWiki = [...wikiMap.entries()]
+    .filter(([, books]) => books.length > 1)
+    .map(([id, books]) => ({ id, books }));
+
+  return { duplicateFanqie, duplicateWiki };
+}
+
+function hasUploadingDataIssues(issues) {
+  return !!(issues?.duplicateFanqie?.length || issues?.duplicateWiki?.length);
+}
+
+function formatUploadingDataIssues(issues) {
+  const lines = [];
+
+  if (issues?.duplicateFanqie?.length) {
+    lines.push(`🍅 Duplicate fanqie_id: ${issues.duplicateFanqie.length}`);
+    issues.duplicateFanqie.forEach(group => {
+      const owners = group.books.map(b => {
+        const wiki = b.wiki_id ? `wiki=${b.wiki_id}` : 'wiki=null';
+        const title = b.vi_title ? ` — ${b.vi_title}` : '';
+        return `#${b.index + 1} ${wiki}${title}`;
+      }).join(' | ');
+      lines.push(`  ${group.id} → ${owners}`);
+    });
+  }
+
+  if (issues?.duplicateWiki?.length) {
+    if (lines.length) lines.push('');
+    lines.push(`💙 Duplicate wiki_id: ${issues.duplicateWiki.length}`);
+    issues.duplicateWiki.forEach(group => {
+      const owners = group.books.map(b => {
+        const fanqie = b.fanqie_id ? `fanqie=${b.fanqie_id}` : 'fanqie=null';
+        const title = b.vi_title ? ` — ${b.vi_title}` : '';
+        return `#${b.index + 1} ${fanqie}${title}`;
+      }).join(' | ');
+      lines.push(`  ${group.id} → ${owners}`);
+    });
+  }
+
+  return lines;
+}
+
+function showUploadingIssues(title, issues, prefix = '') {
+  const details = formatUploadingDataIssues(issues);
+  console.error(title, issues);
+  const body = [title, prefix, ...details, '', 'Click popup để đóng.']
+    .filter(Boolean)
+    .join('\n');
+  toast(body, 'error', 20000);
+}
+
+function validateUploadingList(list) {
+  const issues = getUploadingDataIssues(list);
+  if (!hasUploadingDataIssues(issues)) return true;
+
+  showUploadingIssues(
+    '❌ Không lưu uploading_list.json vì phát hiện ID trùng',
+    issues,
+    'Không có dữ liệu lỗi nào được ghi lên GitHub.'
+  );
+
+  const err = new Error(
+    `Uploading validation failed: ${issues.duplicateFanqie.length} duplicate fanqie_id, ` +
+    `${issues.duplicateWiki.length} duplicate wiki_id`
+  );
+  err.name = 'UploadingValidationError';
+  err.issues = issues;
+  throw err;
+}
+
 async function saveUploading(patchFn) {
-  const merged = await saveListWithPatch('uploading_list.json', patchFn);
+  const merged = await saveListWithPatch('uploading_list.json', fresh => {
+    const next = patchFn(fresh) || fresh;
+    validateUploadingList(next);
+    return next;
+  });
   uploadingList = merged;
   return merged;
 }
@@ -962,6 +1080,8 @@ async function submitInlineUpdates() {
   let bulkUpdatedCount = 0;
   let bulkMissingIds = [];
   let bulkInvalidCount = 0;
+  let bulkInvalidLines = [];
+  let inputErrors = [];
 
   // ── Phase 1: parse intents only
   const newWaitingBooks = [];
@@ -971,11 +1091,11 @@ async function submitInlineUpdates() {
     const lines = wRaw.split('\n').map(l=>l.trim()).filter(Boolean);
     for (const line of lines) {
       const parts = line.split('|').map(p=>p.trim());
-      if (parts.length < 3) { toast(`Bỏ qua dòng lỗi: ${line}`, 'error'); continue; }
+      if (parts.length < 3) { inputErrors.push(`Waiting — dòng lỗi: ${line}`); continue; }
       const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
       const desired = parseInt(desired_str);
-      if (!fanqie_id || isNaN(desired)) { toast(`Lỗi định dạng: ${line}`, 'error'); continue; }
-      if (waitingList.find(b=>b.fanqie_id===fanqie_id) || newWaitingBooks.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
+      if (!fanqie_id || isNaN(desired)) { inputErrors.push(`Waiting — lỗi định dạng: ${line}`); continue; }
+      if (waitingList.find(b=>b.fanqie_id===fanqie_id) || newWaitingBooks.find(b=>b.fanqie_id===fanqie_id)) { inputErrors.push(`Waiting — 🍅 đã có sẵn: ${fanqie_id}`); continue; }
       let desired_date = null;
       if (desired_date_raw) {
         const parsed = parseDesiredDate(desired_date_raw);
@@ -996,11 +1116,33 @@ async function submitInlineUpdates() {
     const lines = tRaw.split('\n').map(l=>l.trim()).filter(Boolean);
     for (const line of lines) {
       const parts = line.split('|').map(p=>p.trim());
-      if (parts.length < 3) { toast(`Bỏ qua dòng lỗi: ${line}`, 'error'); continue; }
-      const [wiki_id, ch_str, fanqie_id] = parts;
+      if (parts.length < 3) { inputErrors.push(`Uploading — dòng lỗi: ${line}`); continue; }
+      const [wikiRaw, ch_str, fanqie_id] = parts;
+      const wiki_id = wikiRaw || null;
       const uploaded = parseInt(ch_str);
-      if (!fanqie_id || isNaN(uploaded)) { toast(`Lỗi định dạng: ${line}`, 'error'); continue; }
-      if (uploadingList.find(b=>b.fanqie_id===fanqie_id) || newUploadingBooks.find(b=>b.fanqie_id===fanqie_id)) { toast(`Đã có sẵn: ${fanqie_id}`, 'error'); continue; }
+      if (!fanqie_id || isNaN(uploaded)) { inputErrors.push(`Uploading — lỗi định dạng: ${line}`); continue; }
+
+      const existingFanqie =
+        uploadingList.find(b => String(b.fanqie_id || '').trim() === fanqie_id) ||
+        newUploadingBooks.find(b => String(b.fanqie_id || '').trim() === fanqie_id);
+      if (existingFanqie) {
+        inputErrors.push(`Uploading — 🍅 fanqie_id đã tồn tại: ${fanqie_id}`);
+        continue;
+      }
+
+      if (wiki_id) {
+        const existingWiki =
+          uploadingList.find(b => String(b.wiki_id || '').trim() === wiki_id) ||
+          newUploadingBooks.find(b => String(b.wiki_id || '').trim() === wiki_id);
+        if (existingWiki) {
+          inputErrors.push(
+            `Uploading — 💙 wiki_id ${wiki_id} đã thuộc 🍅 ${existingWiki.fanqie_id || '(không có fanqie_id)'}` +
+            `; không thể gán cho 🍅 ${fanqie_id}`
+          );
+          continue;
+        }
+      }
+
       newUploadingBooks.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
       addedT++;
     }
@@ -1014,11 +1156,13 @@ async function submitInlineUpdates() {
       const parts = line.split('|').map(p=>p.trim());
       if (parts.length !== 2 || !parts[0] || !/^\d+$/.test(parts[1])) {
         bulkInvalidCount++;
+        bulkInvalidLines.push(line);
         continue;
       }
       const uploaded = Number(parts[1]);
       if (!Number.isSafeInteger(uploaded)) {
         bulkInvalidCount++;
+        bulkInvalidLines.push(line);
         continue;
       }
       bulkWikiEdits.set(parts[0], uploaded);
@@ -1032,60 +1176,75 @@ async function submitInlineUpdates() {
   const savedWait  = newWaitingBooks.length > 0 || waitingNoteEdits.size > 0 || waitingFieldEdits.size > 0;
   const savedTrans = newUploadingBooks.length > 0 || uploadedChEdits.size > 0 || transNoteEdits.size > 0 || bulkWikiEdits.size > 0;
   if (!savedWait && !savedTrans) {
-    if (bulkInvalidCount > 0) toast(`Không có dòng hợp lệ. Bỏ qua ${bulkInvalidCount} dòng lỗi.`, 'error');
+    const errorLines = [...inputErrors];
+    if (bulkInvalidCount > 0) {
+      errorLines.push(`Bulk update — ${bulkInvalidCount} dòng lỗi:`);
+      bulkInvalidLines.forEach(line => errorLines.push(`  ${line}`));
+    }
+    if (errorLines.length) {
+      toast(`❌ Không có thay đổi hợp lệ để lưu\n\n${errorLines.join('\n')}`, 'error', 20000);
+    }
     return;
   }
 
-  // ── Phase 2: apply intents onto a freshly-fetched list inside the patch fn
-  if (savedWait) {
-    await saveWaiting(fresh => {
-      newWaitingBooks.forEach(b => {
-        if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
+  // ── Phase 2: apply intents onto freshly-fetched lists.
+  try {
+    if (savedTrans) {
+      await saveUploading(fresh => {
+        bulkUpdatedCount = 0;
+        bulkMissingIds = [];
+        newUploadingBooks.forEach(b => {
+          if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
+        });
+        uploadedChEdits.forEach((val, id) => {
+          const book = fresh.find(b => b.fanqie_id === id);
+          if (book) { book.uploaded_chapters = val; updatedCount++; }
+        });
+        transNoteEdits.forEach((note, id) => {
+          const book = fresh.find(b => b.fanqie_id === id);
+          if (book) { book.note = note.trim() || null; updatedCount++; }
+        });
+        bulkWikiEdits.forEach((val, wikiId) => {
+          const books = fresh.filter(b => String(b.wiki_id || '').trim() === wikiId);
+          if (!books.length) {
+            bulkMissingIds.push(wikiId);
+            return;
+          }
+          books.forEach(book => {
+            if (book.uploaded_chapters !== val) {
+              book.uploaded_chapters = val;
+              bulkUpdatedCount++;
+            }
+          });
+        });
+        return fresh;
       });
-      waitingNoteEdits.forEach((note, id) => {
-        const book = fresh.find(b => b.fanqie_id === id);
-        if (book) { book.note = note.trim() || null; updatedCount++; }
-      });
-      waitingFieldEdits.forEach((updates, id) => {
-        const book = fresh.find(b => b.fanqie_id === id);
-        if (book) {
-          if (updates.desired_chapters !== undefined) { book.desired_chapters = updates.desired_chapters; updatedCount++; }
-          if (updates.desired_date !== undefined) { book.desired_date = updates.desired_date; updatedCount++; }
-        }
-      });
-      return fresh;
-    });
-  }
-  if (savedTrans) {
-    await saveUploading(fresh => {
-      bulkUpdatedCount = 0;
-      bulkMissingIds = [];
-      newUploadingBooks.forEach(b => {
-        if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
-      });
-      uploadedChEdits.forEach((val, id) => {
-        const book = fresh.find(b => b.fanqie_id === id);
-        if (book) { book.uploaded_chapters = val; updatedCount++; }
-      });
-      transNoteEdits.forEach((note, id) => {
-        const book = fresh.find(b => b.fanqie_id === id);
-        if (book) { book.note = note.trim() || null; updatedCount++; }
-      });
-      bulkWikiEdits.forEach((val, wikiId) => {
-        const books = fresh.filter(b => String(b.wiki_id || '').trim() === wikiId);
-        if (!books.length) {
-          bulkMissingIds.push(wikiId);
-          return;
-        }
-        books.forEach(book => {
-          if (book.uploaded_chapters !== val) {
-            book.uploaded_chapters = val;
-            bulkUpdatedCount++;
+    }
+
+    if (savedWait) {
+      await saveWaiting(fresh => {
+        newWaitingBooks.forEach(b => {
+          if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
+        });
+        waitingNoteEdits.forEach((note, id) => {
+          const book = fresh.find(b => b.fanqie_id === id);
+          if (book) { book.note = note.trim() || null; updatedCount++; }
+        });
+        waitingFieldEdits.forEach((updates, id) => {
+          const book = fresh.find(b => b.fanqie_id === id);
+          if (book) {
+            if (updates.desired_chapters !== undefined) { book.desired_chapters = updates.desired_chapters; updatedCount++; }
+            if (updates.desired_date !== undefined) { book.desired_date = updates.desired_date; updatedCount++; }
           }
         });
+        return fresh;
       });
-      return fresh;
-    });
+    }
+  } catch (e) {
+    if (e?.name !== 'UploadingValidationError') {
+      toast(`❌ Lưu thất bại:\n${e.message || e}`, 'error', 20000);
+    }
+    return;
   }
 
   // Clear UI state + inputs
@@ -1108,9 +1267,25 @@ async function submitInlineUpdates() {
   if (bulkUpdatedCount > 0) msgs.push(`cập nhật chương cho ${bulkUpdatedCount} truyện`);
   if (!msgs.length) msgs.push('không có giá trị nào thay đổi');
   const warnings = [];
-  if (bulkMissingIds.length > 0) warnings.push(`không tìm thấy ${bulkMissingIds.length} wiki_id`);
-  if (bulkInvalidCount > 0) warnings.push(`bỏ qua ${bulkInvalidCount} dòng lỗi`);
-  toast(`Đã lưu: ${msgs.join(', ')}.${warnings.length ? ' ' + warnings.join('; ') + '.' : ''}`, warnings.length ? 'error' : 'success');
+  if (inputErrors.length > 0) {
+    warnings.push(`Input bị bỏ qua (${inputErrors.length}):`);
+    inputErrors.forEach(msg => warnings.push(`  ${msg}`));
+  }
+  if (bulkMissingIds.length > 0) {
+    warnings.push(`Không tìm thấy ${bulkMissingIds.length} wiki_id:`);
+    bulkMissingIds.forEach(id => warnings.push(`  ${id}`));
+  }
+  if (bulkInvalidCount > 0) {
+    warnings.push(`Bỏ qua ${bulkInvalidCount} dòng bulk lỗi:`);
+    bulkInvalidLines.forEach(line => warnings.push(`  ${line}`));
+  }
+
+  const summary = `Đã lưu: ${msgs.join(', ')}.`;
+  toast(
+    warnings.length ? `${summary}\n\n⚠️ Chi tiết:\n${warnings.join('\n')}` : summary,
+    warnings.length ? 'error' : 'success',
+    warnings.length ? 20000 : undefined
+  );
 }
 function discardInlineUpdates() {
   pendingUpdates.clear();
@@ -1402,28 +1577,90 @@ async function submitMove() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   const books = [...selectedWaiting].map(id=>waitingList.find(b=>b.fanqie_id===id)).filter(Boolean);
   const wikiLines = document.getElementById('move-wiki-input').value.split('\n');
-  // Build the move intent (fanqie_id + wiki_id pairs) from the local snapshot
+
   const moves = books.map((book, i) => ({
-    fanqie_id: book.fanqie_id,
+    fanqie_id: String(book.fanqie_id || '').trim(),
     vi_title: book.vi_title,
     wiki_id: (wikiLines[i]||'').trim()||null,
+    current_chapters: book.current_chapters ?? null,
+    status: book.status ?? null,
+    last_updated: book.last_updated ?? null,
   }));
-  selectedWaiting.clear();
-  let movedFromWaiting = [];
-  await saveWaiting(fresh => {
-    movedFromWaiting = fresh.filter(b => moves.find(m => m.fanqie_id === b.fanqie_id));
-    return fresh.filter(b => !moves.find(m => m.fanqie_id === b.fanqie_id));
-  });
-  await saveUploading(fresh => {
-    moves.forEach(m => {
-      if (fresh.find(b=>b.fanqie_id===m.fanqie_id)) return; 
-      const src = movedFromWaiting.find(b => b.fanqie_id === m.fanqie_id);
-      fresh.push({ vi_title: m.vi_title, wiki_id: m.wiki_id, fanqie_id: m.fanqie_id, uploaded_chapters: 0, fanqie_chapters: src?.current_chapters ?? null, status: src?.status ?? null, last_updated: src?.last_updated ?? null });
+
+  let movedIds = [];
+  let moveErrors = [];
+
+  try {
+    await saveUploading(fresh => {
+      movedIds = [];
+      moveErrors = [];
+
+      moves.forEach(m => {
+        const existingFanqie = fresh.find(
+          b => String(b.fanqie_id || '').trim() === m.fanqie_id
+        );
+        if (existingFanqie) {
+          moveErrors.push(`🍅 ${m.fanqie_id} đã tồn tại trong Uploading`);
+          return;
+        }
+
+        if (m.wiki_id) {
+          const wikiOwner = fresh.find(
+            b => String(b.wiki_id || '').trim() === m.wiki_id
+          );
+          if (wikiOwner) {
+            moveErrors.push(
+              `💙 ${m.wiki_id} đã thuộc 🍅 ${wikiOwner.fanqie_id || '(không có fanqie_id)'}` +
+              `; không move 🍅 ${m.fanqie_id}`
+            );
+            return;
+          }
+
+          const sameBatchOwner = fresh.find(
+            b => String(b.wiki_id || '').trim() === m.wiki_id
+          );
+          if (sameBatchOwner) {
+            moveErrors.push(`💙 ${m.wiki_id} bị trùng trong batch move`);
+            return;
+          }
+        }
+
+        fresh.push({
+          vi_title: m.vi_title,
+          wiki_id: m.wiki_id,
+          fanqie_id: m.fanqie_id,
+          uploaded_chapters: 0,
+          fanqie_chapters: m.current_chapters,
+          status: m.status,
+          last_updated: m.last_updated
+        });
+        movedIds.push(m.fanqie_id);
+      });
+
+      return fresh;
     });
-    return fresh;
-  });
-  closeMovePanel(); renderAll();
-  toast(`Moved ${books.length} book(s) to Uploading.`, 'success');
+  } catch (e) {
+    if (e?.name !== 'UploadingValidationError') {
+      toast(`❌ Move thất bại:\n${e.message || e}`, 'error', 20000);
+    }
+    return;
+  }
+
+  if (movedIds.length) {
+    const movedSet = new Set(movedIds);
+    await saveWaiting(fresh => fresh.filter(b => !movedSet.has(String(b.fanqie_id || '').trim())));
+  }
+
+  movedIds.forEach(id => selectedWaiting.delete(id));
+  closeMovePanel();
+  renderAll();
+  updateSelectionUI();
+
+  const lines = [`Moved ${movedIds.length}/${moves.length} book(s) to Uploading.`];
+  if (moveErrors.length) {
+    lines.push('', `⚠️ Bỏ qua ${moveErrors.length} mục:`, ...moveErrors.map(x => `  ${x}`));
+  }
+  toast(lines.join('\n'), moveErrors.length ? 'error' : 'success', moveErrors.length ? 20000 : undefined);
 }
 //PAUSE 
 async function bulkPause(list) {
@@ -1490,12 +1727,19 @@ function closeModal() { document.getElementById('confirm-modal').classList.remov
 document.getElementById('modal-confirm-btn').onclick = async () => { closeModal(); if (_modalCallback) await _modalCallback(); };
 //TOAST 
 let _toastTimer;
-function toast(msg, type='') {
+function toast(msg, type='', duration) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className = 'show '+(type||'');
+  el.scrollTop = 0;
+  el.title = type === 'error' ? 'Click để đóng' : '';
+  el.onclick = () => {
+    clearTimeout(_toastTimer);
+    el.classList.remove('show');
+  };
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
+  const ms = duration ?? (type === 'error' ? 12000 : 3000);
+  if (ms > 0) _toastTimer = setTimeout(()=>el.classList.remove('show'), ms);
 }
 //UNSAVED CHANGES WARNING
 function hasUnsavedChanges() {
