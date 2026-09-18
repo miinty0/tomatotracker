@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tomato Tracker</title>
-<!-- Safety patch 2026-09-18: unique fanqie/wiki validation + expanded error popup -->
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -353,6 +352,7 @@
       <button class="btn" onclick="toggleUploadedUpdatePanel()">+Up</button>
       <span class="select-count" id="trans-sel-count" style="display:none"></span>
       <button class="btn" id="trans-copy-btn" onclick="copySelectedFanqieIds('uploading')" style="display:none">📋 Copy ID</button>
+      <button class="btn" id="trans-rescan-title-btn" onclick="bulkRescanViTitle()" style="display:none" title="Đặt vi_title = null để scraper quét lại tên wiki ở lần chạy tiếp theo">↻ Quét lại tên</button>
       <button class="btn ghost" id="trans-desel-btn" onclick="deselectAll('uploading')" style="display:none">✕ Deselect</button>
       <button class="btn danger" id="trans-del-btn" onclick="bulkDelete('uploading')" style="display:none">🗑 Delete</button>
       <button class="btn" id="trans-pause-btn" onclick="bulkPause('uploading')" style="display:none">⏸ Tạm dừng</button>
@@ -666,6 +666,7 @@ function getUploadingDataIssues(list) {
       if (!fanqieMap.has(fanqieId)) fanqieMap.set(fanqieId, []);
       fanqieMap.get(fanqieId).push(info);
     }
+    // wiki_id=null/blank is intentionally allowed.
     if (wikiId) {
       if (!wikiMap.has(wikiId)) wikiMap.set(wikiId, []);
       wikiMap.get(wikiId).push(info);
@@ -1241,6 +1242,7 @@ async function submitInlineUpdates() {
       });
     }
   } catch (e) {
+    // Validation errors already show their own detailed popup.
     if (e?.name !== 'UploadingValidationError') {
       toast(`❌ Lưu thất bại:\n${e.message || e}`, 'error', 20000);
     }
@@ -1537,6 +1539,7 @@ function updateSelectionUI() {
   document.getElementById('trans-sel-count').textContent = `${tc} selected`;
   document.getElementById('trans-sel-count').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-copy-btn').style.display = tc ? 'inline-flex' : 'none';
+  document.getElementById('trans-rescan-title-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-desel-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-del-btn').style.display = tc ? 'inline-flex' : 'none';
   document.getElementById('trans-pause-btn').style.display = tc ? 'inline-flex' : 'none';
@@ -1662,6 +1665,44 @@ async function submitMove() {
   }
   toast(lines.join('\n'), moveErrors.length ? 'error' : 'success', moveErrors.length ? 20000 : undefined);
 }
+//RESCAN SELECTED VI_TITLE
+function bulkRescanViTitle() {
+  if (!selectedUploading.size) return;
+  const ids = new Set(selectedUploading);
+  const books = uploadingList.filter(b => ids.has(b.fanqie_id));
+  const alreadyNull = books.filter(b => b.vi_title == null || String(b.vi_title).trim() === '').length;
+  const willReset = books.length - alreadyNull;
+
+  const body = [
+    `Đặt vi_title = null cho ${books.length} truyện đã chọn để scraper quét lại tên wiki ở lần chạy tiếp theo.`,
+    '',
+    'Giữ nguyên: wiki_id, fanqie_id, số chương, trạng thái, ngày cập nhật và note.',
+    alreadyNull ? `${alreadyNull} truyện đã có vi_title rỗng/null và sẽ giữ nguyên trạng thái chờ quét.` : ''
+  ].filter(Boolean).join('\n');
+
+  showModal('Quét lại vi_title?', body, async () => {
+    try {
+      await saveUploading(fresh => {
+        fresh.forEach(book => {
+          if (ids.has(book.fanqie_id)) book.vi_title = null;
+        });
+        return fresh;
+      });
+
+      selectedUploading.clear();
+      renderUploading();
+      updateSelectionUI();
+      toast(
+        `Đã yêu cầu quét lại vi_title cho ${books.length} truyện${willReset ? ` (${willReset} tên vừa được reset)` : ''}.`,
+        'success'
+      );
+    } catch (e) {
+      console.error('Rescan vi_title failed:', e);
+      toast(`Không thể yêu cầu quét lại vi_title:\n${e.message}`, 'error', 20000);
+    }
+  });
+}
+
 //PAUSE 
 async function bulkPause(list) {
   const set = list==='waiting' ? selectedWaiting : selectedUploading;
