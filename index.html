@@ -233,7 +233,10 @@
       <option value="completed">Completed</option>
       <option value="paused">Paused</option>
       <option value="new-only">New only</option>
+      <option value="retry-only">Retry only</option>
     </select>
+    <button class="btn ghost" id="scrape-action-status" onclick="checkScraperActionStatus(true)" title="Click để kiểm tra trạng thái scrape.yml">● Action?</button>
+    <button class="btn" id="retry-status-btn" onclick="checkRetryList()" title="Kiểm tra retry_list.json">⚠ Retry</button>
     <button class="btn" onclick="loadData()"><span id="refresh-icon">↻</span></button>
   </div>
 </header>
@@ -604,9 +607,14 @@ async function loadData() {
   if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
   document.getElementById('refresh-icon').className = 'spinner';
   try {
-    const [w, t] = await Promise.all([getFile('waiting_list.json'), getFile('uploading_list.json')]);
+    const [w, t, r] = await Promise.all([
+      getFile('waiting_list.json'),
+      getFile('uploading_list.json'),
+      getFile('retry_list.json')
+    ]);
     waitingList = w.data;
     uploadingList = t.data;
+    updateRetryButton(r.data);
     pendingUpdates.clear();
     pendingWaitingUpdates.clear();
     updateSaveBar();
@@ -755,6 +763,122 @@ async function saveUploading(patchFn) {
   uploadingList = merged;
   return merged;
 }
+//RETRY + SCRAPER ACTION STATUS
+let scraperDispatchLockUntil = 0;
+
+function normalizeRetryIds(data) {
+  if (!Array.isArray(data)) return [];
+  return [...new Set(data.map(x => String(x || '').trim()).filter(Boolean))];
+}
+
+function updateRetryButton(data) {
+  const btn = document.getElementById('retry-status-btn');
+  if (!btn) return;
+  const ids = normalizeRetryIds(data);
+  btn.textContent = ids.length ? `⚠ Retry ${ids.length}` : '✓ Retry 0';
+  btn.title = ids.length
+    ? `retry_list.json còn ${ids.length} fanqie_id — click để xem`
+    : 'retry_list.json đang trống';
+}
+
+async function checkRetryList() {
+  if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
+  const btn = document.getElementById('retry-status-btn');
+  if (btn) btn.textContent = '… Retry';
+  try {
+    const { data } = await getFile('retry_list.json');
+    const ids = normalizeRetryIds(data);
+    updateRetryButton(ids);
+    if (!ids.length) {
+      toast('✓ retry_list.json đang trống.', 'success');
+      return;
+    }
+    toast([
+      `⚠ retry_list.json còn ${ids.length} truyện:`,
+      '',
+      ...ids
+    ].join('\\n'), 'error', 20000);
+  } catch (e) {
+    if (btn) btn.textContent = '⚠ Retry ?';
+    toast('Không kiểm tra được retry_list.json: ' + e.message, 'error', 20000);
+  }
+}
+
+async function getActiveScraperRuns() {
+  const data = await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/runs?per_page=100`);
+  return (data.workflow_runs || []).filter(run => run.status !== 'completed');
+}
+
+function updateScraperActionUI(activeRuns = [], error = null) {
+  const btn = document.getElementById('scrape-action-status');
+  const select = document.getElementById('scrape-mode-select');
+  if (!btn || !select) return;
+
+  if (error) {
+    btn.textContent = '⚠ Action?';
+    btn.title = 'Không xác minh được trạng thái scrape.yml — click để thử lại';
+    select.disabled = true;
+    return;
+  }
+
+  const localDispatchPending = Date.now() < scraperDispatchLockUntil;
+  if (activeRuns.length) {
+    btn.textContent = activeRuns.length > 1 ? `⏳ Action ${activeRuns.length}` : '⏳ Action running';
+    btn.title = 'scrape.yml đang chạy/đang chờ — manual trigger bị khóa';
+    select.disabled = true;
+  } else if (localDispatchPending) {
+    btn.textContent = '⏳ Dispatching…';
+    btn.title = 'Đang chờ GitHub nhận manual dispatch';
+    select.disabled = true;
+  } else {
+    btn.textContent = '● Idle';
+    btn.title = 'scrape.yml đang idle — click để kiểm tra lại';
+    select.disabled = false;
+  }
+}
+
+async function checkScraperActionStatus(showPopup = false) {
+  if (!CFG.repo || !CFG.token) {
+    updateScraperActionUI([], new Error('GitHub config missing'));
+    if (showPopup) toast('Configure GitHub first.', 'error');
+    return null;
+  }
+
+  const btn = document.getElementById('scrape-action-status');
+  if (btn) btn.textContent = '… Action';
+  try {
+    const activeRuns = await getActiveScraperRuns();
+    updateScraperActionUI(activeRuns);
+
+    if (showPopup) {
+      if (!activeRuns.length && Date.now() >= scraperDispatchLockUntil) {
+        toast('✓ scrape.yml hiện đang idle.', 'success');
+      } else if (activeRuns.length) {
+        const details = activeRuns.slice(0, 20).map(run => {
+          const num = run.run_number ?? run.id ?? '?';
+          const source = run.event === 'workflow_dispatch' ? 'manual' : (run.event || 'unknown');
+          return `#${num} — ${run.status} — ${source}`;
+        });
+        toast([
+          `⏳ scrape.yml đang có ${activeRuns.length} run chạy/đang chờ:`,
+          '',
+          ...details,
+          '',
+          'Manual trigger đang bị khóa để tránh race condition.'
+        ].join('\\n'), 'error', 20000);
+      } else {
+        toast('⏳ Manual dispatch vừa được gửi, đang chờ GitHub nhận run.', 'error');
+      }
+    }
+    return activeRuns;
+  } catch (e) {
+    console.error('Action status check failed:', e);
+    updateScraperActionUI([], e);
+    if (showPopup) toast('Không kiểm tra được GitHub Action: ' + e.message, 'error', 20000);
+    return null;
+  }
+}
+
 //SCRAPER 
 async function triggerScraper(mode) {
   if (!mode) return;
@@ -765,22 +889,44 @@ async function triggerScraper(mode) {
     toast('Configure GitHub first.', 'error');
     return;
   }
+
   select.value = '';
+
+  if (Date.now() < scraperDispatchLockUntil) {
+    updateScraperActionUI([]);
+    toast('⏳ Một manual dispatch vừa được gửi. Chưa trigger thêm để tránh race condition.', 'error', 12000);
+    return;
+  }
+
+  // Fresh check immediately before dispatch. If status cannot be verified,
+  // fail closed instead of risking a second scraper writing the data branch.
+  const activeRuns = await checkScraperActionStatus(false);
+  if (activeRuns === null) {
+    toast('❌ Không xác minh được trạng thái GitHub Action nên không trigger scraper.', 'error', 20000);
+    return;
+  }
+  if (activeRuns.length) {
+    toast(`⏳ scrape.yml đang có ${activeRuns.length} run chạy/đang chờ. Không trigger thêm để tránh race condition.`, 'error', 20000);
+    return;
+  }
+
   select.disabled = true;
   placeholder.textContent = '⏳ Triggering…';
   try {
     await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
       method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { mode } })
     });
-    toast(`Scraper [${mode}] triggered thành công!`, 'success');
-    setTimeout(() => {
-      select.disabled = false;
-      placeholder.textContent = '▶ Scrape';
-    }, 3000);
-  } catch(e) {
-    toast('Failed to trigger: ' + e.message, 'error');
-    select.disabled = false;
+    scraperDispatchLockUntil = Date.now() + 15000;
+    updateScraperActionUI([]);
     placeholder.textContent = '▶ Scrape';
+    toast(`Scraper [${mode}] triggered thành công!`, 'success');
+    setTimeout(() => checkScraperActionStatus(false), 3000);
+    setTimeout(() => checkScraperActionStatus(false), 10000);
+  } catch(e) {
+    scraperDispatchLockUntil = 0;
+    toast('Failed to trigger: ' + e.message, 'error');
+    placeholder.textContent = '▶ Scrape';
+    await checkScraperActionStatus(false);
   }
 }
 //TABS 
@@ -1801,7 +1947,20 @@ window.addEventListener('beforeunload', e => {
 });
 //INIT 
 loadConfig();
-if (CFG.repo && CFG.token) { switchTab('waiting'); loadData(); } else switchTab('settings');
+if (CFG.repo && CFG.token) {
+  switchTab('waiting');
+  loadData();
+  checkScraperActionStatus(false);
+} else {
+  switchTab('settings');
+  updateScraperActionUI([], new Error('GitHub config missing'));
+}
+setInterval(() => {
+  if (CFG.repo && CFG.token) checkScraperActionStatus(false);
+}, 30000);
+window.addEventListener('focus', () => {
+  if (CFG.repo && CFG.token) checkScraperActionStatus(false);
+});
 </script>
 </body>
 </html>

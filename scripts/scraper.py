@@ -35,120 +35,111 @@ def fetch_with_retry(url: str, book_id: str) -> requests.Response | None:
 
 
 def scrape_fanqie(book_id: str) -> dict | None:
+    """Fetch Fanqie exactly once for this run.
+
+    Any network/HTTP/bot-block failure returns None immediately so the caller
+    can put the book into retry_list.json for a later scheduled retry run.
+    """
     url = f"https://fanqienovel.com/page/{book_id}"
+    result = {"current_chapters": None, "status": None, "last_updated": None}
 
-    for attempt in range(MAX_RETRIES):
-        result = {"current_chapters": None, "status": None, "last_updated": None}
+    try:
+        resp = SESSION.get(url, timeout=15)
+    except Exception as e:
+        print(f"  [fanqie] SKIP {book_id}: request failed ({e}) → retry next run", file=sys.stderr)
+        return None
 
-        resp = fetch_with_retry(url, book_id)
-        if resp is None:
-            # Network-level failure after fetch retries 
-            print(f"  [fanqie] SKIP {book_id}: all retries failed, will retry next run", file=sys.stderr)
-            return None
+    try:
+        if resp.status_code == 404:
+            print(f"  [fanqie] {book_id}: book removed/hidden (404)")
+            result["status"] = "已删除"
+            return result
+        resp.raise_for_status()
 
-        try:
-            if resp.status_code == 404:
-                print(f"  [fanqie] {book_id}: book removed/hidden (404)")
+        # ── Primary: extract from __INITIAL_STATE__ JSON embedded in page ──
+        raw = resp.text
+
+        book_id_val = re.search(r'"bookId"\s*:\s*"(\d*)"', raw)
+        book_name_val = re.search(r'"bookName"\s*:\s*"([^"]*)"', raw)
+
+        if book_id_val is not None:
+            # INITIAL_STATE is present — check if book is removed/hidden
+            if not book_id_val.group(1) or not (book_name_val and book_name_val.group(1)):
+                print(f"  [fanqie] {book_id}: removed (empty page state)")
                 result["status"] = "已删除"
                 return result
-            resp.raise_for_status()
 
-            # ── Primary: extract from __INITIAL_STATE__ JSON embedded in page ──
-            raw = resp.text
+            # creationStatus: 0 = 已完结, 1 = 连载中
+            s_match = re.search(r'"creationStatus"\s*:\s*(\d+)', raw)
+            if s_match:
+                s = int(s_match.group(1))
+                result["status"] = "连载中" if s == 1 else "已完结" if s == 0 else None
 
-            book_id_val = re.search(r'"bookId"\s*:\s*"(\d*)"', raw)
-            book_name_val = re.search(r'"bookName"\s*:\s*"([^"]*)"', raw)
+            # last_updated from lastPublishTime (unix timestamp)
+            ts_match = re.search(r'"lastPublishTime"\s*:\s*"(\d+)"', raw)
+            if ts_match:
+                result["last_updated"] = datetime.fromtimestamp(
+                    int(ts_match.group(1)), tz=timezone.utc
+                ).strftime("%Y-%m-%d %H:%M")
 
-            if book_id_val is not None:
-                # INITIAL_STATE is present — check if book is removed/hidden
-                if not book_id_val.group(1) or not (book_name_val and book_name_val.group(1)):
-                    print(f"  [fanqie] {book_id}: removed (empty page state)")
-                    result["status"] = "已删除"
-                    return result
+            # chapter count
+            ct_match = re.search(r'"chapterTotal"\s*:\s*(\d+)', raw)
+            if ct_match:
+                result["current_chapters"] = int(ct_match.group(1))
 
-                # creationStatus: 0 = 已完结, 1 = 连载中
-                s_match = re.search(r'"creationStatus"\s*:\s*(\d+)', raw)
-                if s_match:
-                    s = int(s_match.group(1))
-                    result["status"] = "连载中" if s == 1 else "已完结" if s == 0 else None
+        # ── Fallback: parse HTML if JSON missing any field ──
+        if any(v is None for v in result.values()):
+            soup = BeautifulSoup(resp.text, "html.parser")
 
-                # last_updated from lastPublishTime (unix timestamp)
-                ts_match = re.search(r'"lastPublishTime"\s*:\s*"(\d+)"', raw)
-                if ts_match:
-                    result["last_updated"] = datetime.fromtimestamp(
-                        int(ts_match.group(1)), tz=timezone.utc
-                    ).strftime("%Y-%m-%d %H:%M")
+            # Detect removed via title tag
+            title = soup.find("title")
+            if title and title.get_text(strip=True).startswith("小说,番茄小说网"):
+                print(f"  [fanqie] {book_id}: removed (title redirect)")
+                result["status"] = "已删除"
+                return result
 
-                # chapter count
-                ct_match = re.search(r'"chapterTotal"\s*:\s*(\d+)', raw)
-                if ct_match:
-                    result["current_chapters"] = int(ct_match.group(1))
+            # Detect removed via no-content div (book hidden/restricted, bookId missing from state)
+            if soup.find("div", class_="no-content"):
+                print(f"  [fanqie] {book_id}: removed (no-content page)")
+                result["status"] = "已删除"
+                return result
 
-            # ── Fallback: parse HTML if JSON missing any field ──
-            if any(v is None for v in result.values()):
-                soup = BeautifulSoup(resp.text, "html.parser")
+            if result["status"] is None:
+                label_div = soup.find("div", class_="info-label")
+                if label_div:
+                    text = label_div.get_text(separator=" ", strip=True)
+                    if "连载中" in text:
+                        result["status"] = "连载中"
+                    elif "已完结" in text:
+                        result["status"] = "已完结"
 
-                # Detect removed via title tag
-                title = soup.find("title")
-                if title and title.get_text(strip=True).startswith("小说,番茄小说网"):
-                    print(f"  [fanqie] {book_id}: removed (title redirect)")
-                    result["status"] = "已删除"
-                    return result
+            if result["last_updated"] is None:
+                last_div = soup.find("div", class_="info-last")
+                if last_div:
+                    time_span = last_div.find("span", class_="info-last-time")
+                    if time_span:
+                        result["last_updated"] = time_span.get_text(strip=True)
 
-                # Detect removed via no-content div (book hidden/restricted, bookId missing from state)
-                if soup.find("div", class_="no-content"):
-                    print(f"  [fanqie] {book_id}: removed (no-content page)")
-                    result["status"] = "已删除"
-                    return result
+            if result["current_chapters"] is None:
+                dir_header = soup.find("div", class_="page-directory-header")
+                if dir_header:
+                    h3 = dir_header.find("h3")
+                    if h3:
+                        match = re.search(r"(\d+)\s*章", h3.get_text(strip=True))
+                        if match:
+                            result["current_chapters"] = int(match.group(1))
 
-                if result["status"] is None:
-                    label_div = soup.find("div", class_="info-label")
-                    if label_div:
-                        text = label_div.get_text(separator=" ", strip=True)
-                        if "连载中" in text:
-                            result["status"] = "连载中"
-                        elif "已完结" in text:
-                            result["status"] = "已完结"
-
-                if result["last_updated"] is None:
-                    last_div = soup.find("div", class_="info-last")
-                    if last_div:
-                        time_span = last_div.find("span", class_="info-last-time")
-                        if time_span:
-                            result["last_updated"] = time_span.get_text(strip=True)
-
-                if result["current_chapters"] is None:
-                    dir_header = soup.find("div", class_="page-directory-header")
-                    if dir_header:
-                        h3 = dir_header.find("h3")
-                        if h3:
-                            match = re.search(r"(\d+)\s*章", h3.get_text(strip=True))
-                            if match:
-                                result["current_chapters"] = int(match.group(1))
-
-            # ── Bot block: all values still None → retry ──
-            if all(v is None for v in result.values()):
-                wait = RETRY_DELAYS[attempt]
-                if attempt < MAX_RETRIES - 1:
-                    print(f"  [fanqie] {book_id}: bot block on attempt {attempt+1}/{MAX_RETRIES}, "
-                          f"retrying in {wait}s...", file=sys.stderr)
-                    time.sleep(wait)
-                else:
-                    print(f"  [fanqie] {book_id}: bot block on attempt {attempt+1}/{MAX_RETRIES}, "
-                          f"giving up → retry next run", file=sys.stderr)
-                continue  # next attempt
-
-            # Got data — success
-            print(f"  [fanqie] {book_id}: {result['current_chapters']}章, {result['status']}, {result['last_updated']}")
-            return result
-
-        except Exception as e:
-            print(f"  [fanqie] ERROR {book_id}: {e}", file=sys.stderr)
+        # Bot block / unusable page: do not retry inside this run.
+        if all(v is None for v in result.values()):
+            print(f"  [fanqie] {book_id}: bot block / no usable data → retry next run", file=sys.stderr)
             return None
 
-    # Exhausted all attempts due to bot block
-    return None
+        print(f"  [fanqie] {book_id}: {result['current_chapters']}章, {result['status']}, {result['last_updated']}")
+        return result
 
+    except Exception as e:
+        print(f"  [fanqie] ERROR {book_id}: {e} → retry next run", file=sys.stderr)
+        return None
 
 def scrape_wiki(wiki_id: str) -> dict:
     encoded_id = wiki_id.replace("~", "%7E")
@@ -262,14 +253,12 @@ def main():
             for bid in targeted_retries:
                 scrape_and_apply(bid, uploading_map[bid], True, args.mode, failed_ids)
                 already_scraped.add(bid)
-                time.sleep(1.5)
 
         for book in new_books:
             bid = book["fanqie_id"]
             if bid in already_scraped:
                 continue
             scrape_and_apply(bid, book, True, args.mode, failed_ids)
-            time.sleep(1.5)
 
         save_json("uploading_list.json", uploading)
         final_retries = preserved_retries + [bid for bid in failed_ids if bid not in preserved_retries]
@@ -306,7 +295,6 @@ def main():
                 continue
             scrape_and_apply(bid, book, bid in uploading_map, args.mode, failed_ids)
             already_scraped.add(bid)
-            time.sleep(1.5)
 
     if args.retry_only:
         save_json("waiting_list.json", waiting)
@@ -326,7 +314,6 @@ def main():
         if not should_scrape(book):
             continue
         scrape_and_apply(bid, book, False, args.mode, failed_ids)
-        time.sleep(1.5)
 
     save_json("waiting_list.json", waiting)
     print(f"  Saved waiting_list.json")
@@ -340,7 +327,6 @@ def main():
         if not should_scrape(book):
             continue
         scrape_and_apply(bid, book, True, args.mode, failed_ids)
-        time.sleep(1.5)
 
     save_json("uploading_list.json", uploading)
     print(f"  Saved uploading_list.json")

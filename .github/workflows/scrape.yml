@@ -2,10 +2,17 @@ name: Daily Scraper
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # Main scrape 06:00 UTC
-    - cron: '0 7 * * *'   # Retry-only  07:00 UTC
-    - cron: '0 18 * * *'  # Main scrape 18:00 UTC
-    - cron: '0 19 * * *'  # Retry-only  19:00 UTC
+    # GitHub schedules are UTC. These are 03:17, 04:17, 07:17, 11:17,
+    # 12:17, 15:17, 19:17 and 20:17 in Asia/Ho_Chi_Minh (UTC+7).
+    # Using :17 avoids the high-load start-of-hour window.
+    - cron: '17 20 * * *'  # 03:17 ICT — ongoing
+    - cron: '17 21 * * *'  # 04:17 ICT — retry-only
+    - cron: '17 0 * * *'   # 07:17 ICT — retry-only
+    - cron: '17 4 * * *'   # 11:17 ICT — completed
+    - cron: '17 5 * * *'   # 12:17 ICT — retry-only
+    - cron: '17 8 * * *'   # 15:17 ICT — retry-only
+    - cron: '17 12 * * *'  # 19:17 ICT — paused
+    - cron: '17 13 * * *'  # 20:17 ICT — retry-only
   workflow_dispatch:
     inputs:
       mode:
@@ -23,11 +30,10 @@ on:
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: write
-env:
-  IS_RETRY_CRON: ${{ github.event.schedule == '0 7 * * *' || github.event.schedule == '0 19 * * *' }}
 
 jobs:
   scrape:
@@ -51,9 +57,26 @@ jobs:
       - name: Determine run flags
         id: flags
         run: |
-          MODE="${{ github.event.inputs.mode || 'auto' }}"
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            case "${{ github.event.schedule }}" in
+              '17 20 * * *') MODE="auto" ;;
+              '17 21 * * *') MODE="retry-only" ;;
+              '17 0 * * *')  MODE="retry-only" ;;
+              '17 4 * * *')  MODE="completed" ;;
+              '17 5 * * *')  MODE="retry-only" ;;
+              '17 8 * * *')  MODE="retry-only" ;;
+              '17 12 * * *') MODE="paused" ;;
+              '17 13 * * *') MODE="retry-only" ;;
+              *)
+                echo "::error::Unknown scheduled cron: ${{ github.event.schedule }}"
+                exit 1
+                ;;
+            esac
+          else
+            MODE="${{ github.event.inputs.mode || 'auto' }}"
+          fi
 
-          if [[ "$IS_RETRY_CRON" == "true" || "$MODE" == "retry-only" ]]; then
+          if [[ "$MODE" == "retry-only" ]]; then
             echo "args=--retry-only" >> $GITHUB_OUTPUT
             echo "label=retry-only" >> $GITHUB_OUTPUT
           else
