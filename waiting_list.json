@@ -25,5 +25,14 @@
     "current_chapters": 7,
     "status": "连载中",
     "last_updated": "2026-09-10 02:01"
+  },
+  {
+    "vi_title": "",
+    "desired_chapters": 0,
+    "fanqie_id": "7640326245783178265",
+    "desired_date": "15/10/2026",
+    "current_chapters": null,
+    "status": null,
+    "last_updated": null
   }
 ]
