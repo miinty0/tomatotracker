@@ -13,9 +13,9 @@
     "desired_chapters": 30,
     "fanqie_id": "7683809865705196568",
     "desired_date": null,
-    "current_chapters": 27,
+    "current_chapters": 28,
     "status": "连载中",
-    "last_updated": "2026-10-10 03:00"
+    "last_updated": "2026-10-11 06:52"
   },
   {
     "vi_title": "",
@@ -32,7 +32,7 @@
     "fanqie_id": "7640326245783178265",
     "desired_date": "15/10/2026",
     "current_chapters": null,
-    "status": null,
+    "status": "已删除",
     "last_updated": null
   }
 ]
