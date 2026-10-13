@@ -294,17 +294,14 @@
   <div class="add-panel" id="add-panel-waiting">
     <h4>Add to Waiting List — Bulk</h4>
     <textarea id="waiting-input"oninput="updateSaveBar()"></textarea>
-    <div class="hint">Format: Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line)</div>
+    <div class="hint">Format: Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line). Có thể bỏ trống Title và Desired Chapters (mặc định 0): | | fanqie_id | DD/MM/YYYY</div>
     <div class="actions">
       <button class="btn primary" onclick="submitInlineUpdates()">Save & Add Books</button>
       <button class="btn" onclick="document.getElementById('add-panel-waiting').classList.remove('open'); document.getElementById('waiting-input').value=''; updateSaveBar();">Cancel</button>
     </div>
   </div>
   <div id="waiting-ready-banner" class="alert-banner" style="display:none">
-    🟢️ Truyện đã đạt đủ số chương mong muốn. Check lại wiki xem có thay đổi gì không.
-  </div>
-  <div id="waiting-deadline-banner" class="alert-banner" style="display:none;">
-    🟢️ Truyện đã đạt đủ số ngày mong muốn. Check lại wiki xem có thay đổi gì không.
+    🟢️ Truyện đã đạt target mong muốn.
   </div>
   <div class="thead-sticky-wrap" id="waiting-thead-wrap">
     <table id="waiting-thead-table">
@@ -1240,7 +1237,7 @@ async function submitInlineUpdates() {
       const parts = line.split('|').map(p=>p.trim());
       if (parts.length < 3) { inputErrors.push(`Waiting — dòng lỗi: ${line}`); continue; }
       const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
-      const desired = parseInt(desired_str);
+      const desired = desired_str === '' ? 0 : parseInt(desired_str);
       if (!fanqie_id || isNaN(desired)) { inputErrors.push(`Waiting — lỗi định dạng: ${line}`); continue; }
       if (waitingList.find(b=>b.fanqie_id===fanqie_id) || newWaitingBooks.find(b=>b.fanqie_id===fanqie_id)) { inputErrors.push(`Waiting — 🍅 đã có sẵn: ${fanqie_id}`); continue; }
       let desired_date = null;
@@ -1498,7 +1495,8 @@ function renderWaiting() {
   const tbody = document.getElementById('waiting-tbody');
   const arr = filteredWaiting();
   setSearchCount('waiting', arr.length, waitingList.length);
-  let anyReady = false, anyUrgent = false;
+  let anyReady = false;
+  document.getElementById('waiting-ready-banner').style.display = 'none';
   if (!arr.length) {
     const msg = searchWaiting
       ? `No results for "<strong>${esc(searchWaiting)}</strong>"`
@@ -1513,10 +1511,10 @@ function renderWaiting() {
     const isPendingCh = pendingW.desired_chapters !== undefined;
     const isPendingDate = pendingW.desired_date !== undefined;
     const chReady = (book.current_chapters||0) >= (book.desired_chapters||0);
-    if (chReady) anyReady = true;
     const dDays = daysUntilDeadline(book.desired_date);
-    if (dDays !== null && dDays <= 3) anyUrgent = true;
-    const readyTag = chReady
+    const targetReady = chReady && dDays !== null && dDays <= 0;
+    if (targetReady) anyReady = true;
+    const readyTag = targetReady
       ? '<span class="tag tag-green">✓ READY</span>'
       : `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${book.desired_chapters}</span>`;
     const chPct = Math.min(100, Math.round(((book.current_chapters||0)/(book.desired_chapters||1))*100));
@@ -1562,7 +1560,6 @@ return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id
     </tr>`;
   }).join('');
   document.getElementById('waiting-ready-banner').style.display = anyReady ? 'flex' : 'none';
-  document.getElementById('waiting-deadline-banner').style.display = anyUrgent ? 'flex' : 'none';
   requestAnimationFrame(updateTheadTop);
   updateSelectionUI(); updateBadges();
 }
