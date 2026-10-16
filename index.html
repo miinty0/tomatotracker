@@ -1005,10 +1005,11 @@ function fmtDeadline(dateStr) {
   const dd = String(target.getDate()).padStart(2,'0');
   const mm = String(target.getMonth()+1).padStart(2,'0');
   const display = `${dd}/${mm}/${target.getFullYear()}`;
-  if (days < 0)  return `<span class="deadline-badge ready-done">🟢 ${display} (${Math.abs(days)}d overdue)</span>`;
-  if (days === 0) return `<span class="deadline-badge ready-today">🟢 TODAY</span>`;
-  if (days <= 3) return `<span class="deadline-badge ready-soon">🟡 ${display} (${days}d left)</span>`;
-  return `<span class="deadline-badge ready-pending">${display} (${days}d left)</span>`;
+  // Chỉ hiện số ngày để cột gọn; ngày đầy đủ xem ở tooltip (di chuột vào).
+  if (days < 0)  return `<span class="deadline-badge ready-done" title="${display}">🟢 ${Math.abs(days)}d overdue</span>`;
+  if (days === 0) return `<span class="deadline-badge ready-today" title="${display}">🟢 TODAY</span>`;
+  if (days <= 3) return `<span class="deadline-badge ready-soon" title="${display}">🟡 ${days}d left</span>`;
+  return `<span class="deadline-badge ready-pending" title="${display}">${days}d left</span>`;
 }
 //SEARCH HELPERS 
 function removeAccents(str) {
