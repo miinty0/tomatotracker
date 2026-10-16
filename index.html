@@ -293,8 +293,8 @@
   </div>
   <div class="add-panel" id="add-panel-waiting">
     <h4>Add to Waiting List — Bulk</h4>
-    <textarea id="waiting-input"oninput="updateSaveBar()"></textarea>
-    <div class="hint">Format: Title | Desired Chapters | 🍅 Book ID | Desired Date DD/MM/YYYY (optional, one per line). Có thể bỏ trống Title và Desired Chapters (mặc định 0): | | fanqie_id | DD/MM/YYYY</div>
+    <textarea id="waiting-input" oninput="updateSaveBar()" placeholder="id: 123456789, chương: 30&#10;id: 987654321, ngày: 12/03/2026, tên: Tên truyện, note: ghi chú"></textarea>
+    <div class="hint">Mỗi dòng 1 truyện: id: …, chương: …, ngày: dd/mm/yyyy, tên: …, note: … (các nhãn viết theo thứ tự tùy ý). Bắt buộc id và (chương hoặc ngày); tên và note có thể bỏ trống. Vẫn nhận dạng cũ: tên | chương | 🍅 id | ngày | note (vd: |30|123456789||)</div>
     <div class="actions">
       <button class="btn primary" onclick="submitInlineUpdates()">Save & Add Books</button>
       <button class="btn" onclick="document.getElementById('add-panel-waiting').classList.remove('open'); document.getElementById('waiting-input').value=''; updateSaveBar();">Cancel</button>
@@ -306,14 +306,14 @@
   <div class="thead-sticky-wrap" id="waiting-thead-wrap">
     <table id="waiting-thead-table">
       <colgroup>
-        <col style="width:30px">
-        <col style="width:20.81%">
-        <col style="width:10.41%">
-        <col style="width:10.41%">
-        <col style="width:10.41%">
-        <col style="width:14.57%">
-        <col style="width:14.57%">
-        <col style="width:12.49%">
+        <col style="width:4%">
+        <col style="width:24%">
+        <col style="width:10%">
+        <col style="width:8.5%">
+        <col style="width:12.5%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:15%">
       </colgroup>
       <thead>
         <tr>
@@ -332,14 +332,14 @@
   <div class="table-wrap" id="waiting-body-wrap">
     <table id="waiting-table">
       <colgroup>
-        <col style="width:30px">
-        <col style="width:20.81%">
-        <col style="width:10.41%">
-        <col style="width:10.41%">
-        <col style="width:10.41%">
-        <col style="width:14.57%">
-        <col style="width:14.57%">
-        <col style="width:12.49%">
+        <col style="width:4%">
+        <col style="width:24%">
+        <col style="width:10%">
+        <col style="width:8.5%">
+        <col style="width:12.5%">
+        <col style="width:12%">
+        <col style="width:14%">
+        <col style="width:15%">
       </colgroup>
       <tbody id="waiting-tbody"></tbody>
     </table>
@@ -1006,10 +1006,99 @@ function fmtDeadline(dateStr) {
   const mm = String(target.getMonth()+1).padStart(2,'0');
   const display = `${dd}/${mm}/${target.getFullYear()}`;
   // Chỉ hiện số ngày để cột gọn; ngày đầy đủ xem ở tooltip (di chuột vào).
-  if (days < 0)  return `<span class="deadline-badge ready-done" title="${display}">🟢 ${Math.abs(days)}d overdue</span>`;
-  if (days === 0) return `<span class="deadline-badge ready-today" title="${display}">🟢 TODAY</span>`;
+  // Ngày đã đủ (hôm nay hoặc đã qua) đều là dạng ready, không phân biệt overdue.
+  if (days <= 0) return `<span class="deadline-badge ready-done" title="${display}">✓ Date</span>`;
   if (days <= 3) return `<span class="deadline-badge ready-soon" title="${display}">🟡 ${days}d left</span>`;
   return `<span class="deadline-badge ready-pending" title="${display}">${days}d left</span>`;
+}
+
+// ── Waiting: parse dòng nhập hàng loạt ──
+// Dạng nhãn (khuyên dùng): id: 123456789, chương: 30, ngày: 12/03/2026, tên: ..., note: ...
+// Dạng cũ (dòng không bắt đầu bằng nhãn): tên | chương | id | ngày | note
+// Bắt buộc: id (chỉ chữ số) và ít nhất một trong hai: chương (>0) hoặc ngày. Tên và note có thể trống.
+const WAITING_LABEL_MAP = {
+  'tên': 'title', 'ten': 'title', 'title': 'title',
+  'chương': 'chapters', 'chuong': 'chapters', 'chapter': 'chapters',
+  'id': 'id',
+  'ngày': 'date', 'ngay': 'date', 'date': 'date',
+  'note': 'note',
+};
+const WAITING_LABEL_ALT = Object.keys(WAITING_LABEL_MAP).join('|');
+
+// Ngày strict dd/mm/yyyy (2-2-4 chữ số, ngày có thật trong lịch). Trả về 'dd/mm/yyyy' hoặc null.
+function parseStrictDMY(str) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(str || '').trim());
+  if (!m) return null;
+  const d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return `${m[1]}/${m[2]}/${m[3]}`;
+}
+
+// "id: 1, chương: 30, note: a, b" → { id:'1', chapters:'30', note:'a, b' }. Giá trị chạy tới nhãn kế tiếp.
+function parseLabeledWaitingLine(line) {
+  const re = new RegExp(`(^|[\\s,;])(${WAITING_LABEL_ALT})\\s*[:=]`, 'giu');
+  const hits = [...line.matchAll(re)].map(m => ({
+    key: WAITING_LABEL_MAP[m[2].toLowerCase()],
+    start: m.index + m[1].length,
+    valueFrom: m.index + m[0].length,
+  }));
+  const fields = {};
+  for (let i = 0; i < hits.length; i++) {
+    const end = i + 1 < hits.length ? hits[i + 1].start : line.length;
+    if (fields[hits[i].key] !== undefined) return { error: `nhãn "${hits[i].key}" bị lặp` };
+    fields[hits[i].key] = line.slice(hits[i].valueFrom, end).replace(/[\s,;]+$/, '').trim();
+  }
+  return { fields };
+}
+
+// existingIds: Set các fanqie_id đã có. Trả về { books, errors }. Dòng lỗi bị bỏ qua, dòng đúng vẫn được thêm.
+function parseWaitingLines(raw, existingIds) {
+  const books = [], errors = [];
+  const seen = new Set(existingIds);
+  const startsWithLabel = new RegExp(`^(${WAITING_LABEL_ALT})\\s*[:=]`, 'iu');
+  for (const line of String(raw || '').split('\n').map(l => l.trim()).filter(Boolean)) {
+    let f;
+    if (startsWithLabel.test(line)) {
+      const r = parseLabeledWaitingLine(line);
+      if (r.error) { errors.push(`Waiting — ${r.error}: ${line}`); continue; }
+      f = r.fields;
+    } else {
+      const rawParts = line.split('|');
+      const parts = rawParts.map(p => p.trim());
+      if (parts.length < 3) {
+        errors.push(`Waiting — dòng lỗi (dùng "id: …, chương: …, ngày: …" hoặc "tên | chương | id | ngày | note"): ${line}`);
+        continue;
+      }
+      // note là phần còn lại sau trường thứ 4, giữ nguyên các dấu | bên trong
+      f = { title: parts[0], chapters: parts[1], id: parts[2], date: parts[3] || '', note: rawParts.slice(4).join('|').trim() };
+    }
+    const id = String(f.id || '').trim();
+    if (!id) { errors.push(`Waiting — thiếu id: ${line}`); continue; }
+    if (!/^\d+$/.test(id)) { errors.push(`Waiting — id phải là số (nhận được "${id}"): ${line}`); continue; }
+    let desired = 0;
+    if (f.chapters) {
+      desired = parseInt(f.chapters, 10);
+      if (isNaN(desired) || desired < 0) { errors.push(`Waiting — chương không hợp lệ ("${f.chapters}"): ${line}`); continue; }
+    }
+    let desired_date = null;
+    if (f.date) {
+      desired_date = parseStrictDMY(f.date);
+      if (!desired_date) {
+        errors.push(`Waiting — ngày "${f.date}" không hợp lệ (phải là dd/mm/yyyy, ngày có thật, năm 4 chữ số): ${line}`);
+        continue;
+      }
+    }
+    if (desired <= 0 && !desired_date) { errors.push(`Waiting — cần có chương (>0) hoặc ngày: ${line}`); continue; }
+    if (seen.has(id)) { errors.push(`Waiting — 🍅 đã có sẵn: ${id}`); continue; }
+    seen.add(id);
+    books.push({
+      vi_title: String(f.title || '').trim(), desired_chapters: desired, fanqie_id: id, desired_date,
+      note: String(f.note || '').trim() || null,
+      current_chapters: null, status: null, last_updated: null,
+    });
+  }
+  return { books, errors };
 }
 //SEARCH HELPERS 
 function removeAccents(str) {
@@ -1090,13 +1179,18 @@ function daysSince(dateStr) {
   if (!dateStr) return 9999;
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
 }
-function fmtDate(dateStr, status) {
+// 'YYYY-MM-DD…' → 'dd/mm/yyyy' (giữ nguyên nếu không đúng dạng)
+function isoToDMY(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s).slice(0,10);
+}
+function fmtDate(dateStr, status, dmy = false) {
   if (!dateStr) return '<span style="color:var(--text3)">—</span>';
   const d = daysSince(dateStr);
   const s = (status||'').toLowerCase();
   const isCompleted = s.includes('已完结') || s.includes('hoàn thành') || status === 'Tạm dừng';
   const cls = (!isCompleted && d >= 15) ? 'color:var(--red)' : (!isCompleted && d >= 7) ? 'color:var(--yellow)' : 'color:var(--text2)';
-  return `<span style="${cls}" class="mono">${dateStr.slice(0,10)}</span>`;
+  return `<span style="${cls}" class="mono">${dmy ? isoToDMY(dateStr) : dateStr.slice(0,10)}</span>`;
 }
 function aheadBadge(fanqie_ch, uploaded_ch) {
   const diff = (fanqie_ch||0) - (uploaded_ch||0);
@@ -1233,26 +1327,10 @@ async function submitInlineUpdates() {
   const wInput = document.getElementById('waiting-input');
   const wRaw = wInput ? wInput.value.trim() : '';
   if (wRaw) {
-    const lines = wRaw.split('\n').map(l=>l.trim()).filter(Boolean);
-    for (const line of lines) {
-      const parts = line.split('|').map(p=>p.trim());
-      if (parts.length < 3) { inputErrors.push(`Waiting — dòng lỗi: ${line}`); continue; }
-      const [vi_title, desired_str, fanqie_id, desired_date_raw] = parts;
-      const desired = desired_str === '' ? 0 : parseInt(desired_str);
-      if (!fanqie_id || isNaN(desired)) { inputErrors.push(`Waiting — lỗi định dạng: ${line}`); continue; }
-      if (waitingList.find(b=>b.fanqie_id===fanqie_id) || newWaitingBooks.find(b=>b.fanqie_id===fanqie_id)) { inputErrors.push(`Waiting — 🍅 đã có sẵn: ${fanqie_id}`); continue; }
-      let desired_date = null;
-      if (desired_date_raw) {
-        const parsed = parseDesiredDate(desired_date_raw);
-        if (parsed) {
-          const dd = String(parsed.getDate()).padStart(2,'0');
-          const mm = String(parsed.getMonth()+1).padStart(2,'0');
-          desired_date = `${dd}/${mm}/${parsed.getFullYear()}`;
-        }
-      }
-      newWaitingBooks.push({ vi_title, desired_chapters: desired, fanqie_id, desired_date, current_chapters: null, status: null, last_updated: null });
-      addedW++;
-    }
+    const parsedW = parseWaitingLines(wRaw, new Set(waitingList.map(b => String(b.fanqie_id || '').trim())));
+    newWaitingBooks.push(...parsedW.books);
+    inputErrors.push(...parsedW.errors);
+    addedW = parsedW.books.length;
   }
   const newUploadingBooks = [];
   const tInput = document.getElementById('uploading-input');
@@ -1511,13 +1589,21 @@ function renderWaiting() {
     const displayDesDate = pendingW.desired_date !== undefined ? pendingW.desired_date : (book.desired_date || '');
     const isPendingCh = pendingW.desired_chapters !== undefined;
     const isPendingDate = pendingW.desired_date !== undefined;
-    const chReady = (book.current_chapters||0) >= (book.desired_chapters||0);
+    // READY: mọi mục tiêu đã đặt đều đạt; mục để trống (chương = 0 / không có ngày) coi như đạt.
+    // Cần có ít nhất 1 mục tiêu. Có cả hai thì phải đạt cả hai.
+    const desCh = book.desired_chapters || 0;
     const dDays = daysUntilDeadline(book.desired_date);
-    const targetReady = chReady && dDays !== null && dDays <= 0;
+    const hasCh = desCh > 0, hasDate = dDays !== null;
+    const chOk = !hasCh || (book.current_chapters||0) >= desCh;
+    const dateOk = !hasDate || dDays <= 0;
+    const targetReady = (hasCh || hasDate) && chOk && dateOk;
     if (targetReady) anyReady = true;
     const readyTag = targetReady
       ? '<span class="tag tag-green">✓ READY</span>'
-      : `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${book.desired_chapters}</span>`;
+      : (hasCh ? `<span class="mono" style="color:var(--text3)">${book.current_chapters||'?'}/${desCh}</span>` : '');
+    // Đã READY thì không cần badge ngày nữa
+    const deadlineTag = (!targetReady && displayDesDate) ? fmtDeadline(displayDesDate) : '';
+    const readyCell = (readyTag + deadlineTag) ? (readyTag + deadlineTag) : '<span class="deadline-none">—</span>';
     const chPct = Math.min(100, Math.round(((book.current_chapters||0)/(book.desired_chapters||1))*100));
     const fillCls = chPct>=100?'progress-fill':chPct>=70?'progress-fill warn':'progress-fill danger';
     const titleHtml = hl(book.vi_title||'', searchWaiting) || '<em style="color:var(--text3)">Chưa có tên</em>';
@@ -1542,7 +1628,7 @@ return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id
         </div>
       </td>
       <td>${fmtStatus(book.status)}</td>
-      <td>${fmtDate(book.last_updated, book.status)}</td>
+      <td>${fmtDate(book.last_updated, book.status, true)}</td>
       <td>
         <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
         <input type="text" class="inline-ch-input${isPendingDate?' pending':''}"
@@ -1554,8 +1640,7 @@ return `<tr class="${selectedWaiting.has(book.fanqie_id)?'selected':''}" data-id
       </td>
       <td>
         <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
-          ${readyTag}
-          ${displayDesDate ? fmtDeadline(displayDesDate) : ''}
+          ${readyCell}
         </div>
       </td>
     </tr>`;
