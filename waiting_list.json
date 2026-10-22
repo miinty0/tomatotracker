@@ -6,7 +6,8 @@
     "desired_date": null,
     "current_chapters": 22,
     "status": "连载中",
-    "last_updated": "2026-10-16 23:00"
+    "last_updated": "2026-10-16 23:00",
+    "note": "dao-tiêu213"
   },
   {
     "vi_title": "",
@@ -15,7 +16,8 @@
     "desired_date": null,
     "current_chapters": 29,
     "status": "连载中",
-    "last_updated": "2026-10-12 15:57"
+    "last_updated": "2026-10-12 15:57",
+    "note": "chu-nguyên"
   },
   {
     "vi_title": "",
@@ -24,6 +26,7 @@
     "desired_date": null,
     "current_chapters": 7,
     "status": "连载中",
-    "last_updated": "2026-09-10 02:01"
+    "last_updated": "2026-09-10 02:01",
+    "note": "thảo-thanh7"
   }
 ]
