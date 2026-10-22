@@ -392,9 +392,9 @@
   <div class="add-panel" id="add-panel-uploading">
     <h4>Add Directly to Uploading List — Bulk</h4>
     <textarea id="uploading-input" oninput="updateSaveBar()"></textarea>
-    <div class="hint">Format: 💙 Book ID | Uploaded Chapters | 🍅 Book ID (one per line)</div>
+    <div class="hint">Format: 💙 Book ID | Uploaded Chapters | 🍅 Book ID (one per line). Cả hai ID cùng khớp truyện đã có → cập nhật số chương; lệch một ID → báo lỗi.</div>
     <div class="actions">
-      <button class="btn primary" onclick="submitInlineUpdates()">Save & Add Books</button>
+      <button class="btn primary" onclick="submitInlineUpdates()">Save / Add / Update Books</button>
       <button class="btn" onclick="document.getElementById('add-panel-uploading').classList.remove('open'); document.getElementById('uploading-input').value=''; updateSaveBar();">Cancel</button>
     </div>
   </div>
@@ -1312,10 +1312,44 @@ function updateSaveBar() {
   const uEl = document.getElementById('uploaded-update-input');
   if (uEl) uEl.classList.toggle('pending', bulkUp > 0);
 }
+// Recheck each pair against fresh data on every save attempt, including retries.
+function applyUploadingEntries(list, entries) {
+  const addedIds = new Set();
+  const updatedIds = new Set();
+  const errors = [];
+  const id = value => String(value ?? '').trim();
+  for (const entry of entries) {
+    const fanqieId = id(entry.fanqie_id);
+    const wikiId = id(entry.wiki_id);
+    const byFanqie = list.find(book => id(book.fanqie_id) === fanqieId);
+    const byWiki = wikiId ? list.find(book => id(book.wiki_id) === wikiId) : null;
+    if (byFanqie && id(byFanqie.wiki_id) !== wikiId) {
+      errors.push(`Uploading — 🍅 ${fanqieId} đã có 💙 ${id(byFanqie.wiki_id) || '(trống)'}; không khớp 💙 ${wikiId || '(trống)'} vừa nhập.`);
+      continue;
+    }
+    if (byWiki && id(byWiki.fanqie_id) !== fanqieId) {
+      errors.push(`Uploading — 💙 ${wikiId} đã thuộc 🍅 ${id(byWiki.fanqie_id) || '(trống)'}; không khớp 🍅 ${fanqieId} vừa nhập.`);
+      continue;
+    }
+    if (byFanqie) {
+      if (byFanqie.uploaded_chapters !== entry.uploaded_chapters) {
+        byFanqie.uploaded_chapters = entry.uploaded_chapters;
+        if (!addedIds.has(fanqieId)) updatedIds.add(fanqieId);
+      }
+    } else {
+      list.push({ ...entry });
+      addedIds.add(fanqieId);
+    }
+  }
+  return { added: addedIds.size, updated: updatedIds.size, errors };
+}
+
 async function submitInlineUpdates() {
   if (!CFG.repo || !CFG.token) { toast('Configure GitHub first.', 'error'); return; }
   let addedW = 0, addedT = 0;
   let updatedCount = 0;
+  let uploadingPairUpdatedCount = 0;
+  let uploadingPairErrors = [];
   let bulkUpdatedCount = 0;
   let bulkMissingIds = [];
   let bulkInvalidCount = 0;
@@ -1332,7 +1366,7 @@ async function submitInlineUpdates() {
     inputErrors.push(...parsedW.errors);
     addedW = parsedW.books.length;
   }
-  const newUploadingBooks = [];
+  const uploadingEntries = [];
   const tInput = document.getElementById('uploading-input');
   const tRaw = tInput ? tInput.value.trim() : '';
   if (tRaw) {
@@ -1345,29 +1379,7 @@ async function submitInlineUpdates() {
       const uploaded = parseInt(ch_str);
       if (!fanqie_id || isNaN(uploaded)) { inputErrors.push(`Uploading — lỗi định dạng: ${line}`); continue; }
 
-      const existingFanqie =
-        uploadingList.find(b => String(b.fanqie_id || '').trim() === fanqie_id) ||
-        newUploadingBooks.find(b => String(b.fanqie_id || '').trim() === fanqie_id);
-      if (existingFanqie) {
-        inputErrors.push(`Uploading — 🍅 fanqie_id đã tồn tại: ${fanqie_id}`);
-        continue;
-      }
-
-      if (wiki_id) {
-        const existingWiki =
-          uploadingList.find(b => String(b.wiki_id || '').trim() === wiki_id) ||
-          newUploadingBooks.find(b => String(b.wiki_id || '').trim() === wiki_id);
-        if (existingWiki) {
-          inputErrors.push(
-            `Uploading — 💙 wiki_id ${wiki_id} đã thuộc 🍅 ${existingWiki.fanqie_id || '(không có fanqie_id)'}` +
-            `; không thể gán cho 🍅 ${fanqie_id}`
-          );
-          continue;
-        }
-      }
-
-      newUploadingBooks.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
-      addedT++;
+      uploadingEntries.push({ vi_title: null, wiki_id, fanqie_id, uploaded_chapters: uploaded, fanqie_chapters: null, status: null, last_updated: null });
     }
   }
   const bulkWikiEdits = new Map();
@@ -1397,7 +1409,7 @@ async function submitInlineUpdates() {
   const waitingFieldEdits = new Map(pendingWaitingUpdates);
 
   const savedWait  = newWaitingBooks.length > 0 || waitingNoteEdits.size > 0 || waitingFieldEdits.size > 0;
-  const savedTrans = newUploadingBooks.length > 0 || uploadedChEdits.size > 0 || transNoteEdits.size > 0 || bulkWikiEdits.size > 0;
+  const savedTrans = uploadingEntries.length > 0 || uploadedChEdits.size > 0 || transNoteEdits.size > 0 || bulkWikiEdits.size > 0;
   if (!savedWait && !savedTrans) {
     const errorLines = [...inputErrors];
     if (bulkInvalidCount > 0) {
@@ -1416,9 +1428,10 @@ async function submitInlineUpdates() {
       await saveUploading(fresh => {
         bulkUpdatedCount = 0;
         bulkMissingIds = [];
-        newUploadingBooks.forEach(b => {
-          if (!fresh.find(x => x.fanqie_id === b.fanqie_id)) fresh.push(b);
-        });
+        const pairResult = applyUploadingEntries(fresh, uploadingEntries);
+        addedT = pairResult.added;
+        uploadingPairUpdatedCount = pairResult.updated;
+        uploadingPairErrors = pairResult.errors;
         uploadedChEdits.forEach((val, id) => {
           const book = fresh.find(b => b.fanqie_id === id);
           if (book) { book.uploaded_chapters = val; updatedCount++; }
@@ -1488,9 +1501,11 @@ async function submitInlineUpdates() {
   const totalAdd = addedW + addedT;
   if (totalAdd > 0) msgs.push(`Thêm ${totalAdd} truyện`);
   if (updatedCount > 0) msgs.push(`Sửa ${updatedCount} mục`);
+  if (uploadingPairUpdatedCount > 0) msgs.push(`cập nhật chương cho ${uploadingPairUpdatedCount} truyện từ +Add`);
   if (bulkUpdatedCount > 0) msgs.push(`cập nhật chương cho ${bulkUpdatedCount} truyện`);
   if (!msgs.length) msgs.push('không có giá trị nào thay đổi');
   const warnings = [];
+  inputErrors.push(...uploadingPairErrors);
   if (inputErrors.length > 0) {
     warnings.push(`Input bị bỏ qua (${inputErrors.length}):`);
     inputErrors.forEach(msg => warnings.push(`  ${msg}`));
