@@ -2,12 +2,13 @@ name: Daily Scraper
 
 on:
   schedule:
-    # GitHub schedules are UTC. These are 03:17, 04:17, 07:17, 11:17,
-    # 12:17, 15:17, 19:17 and 20:17 in Asia/Ho_Chi_Minh (UTC+7).
+    # GitHub schedules are UTC. These are 03:17, 04:17, 07:17, 08:02,
+    # 11:17, 12:17, 15:17, 19:17 and 20:17 in Asia/Ho_Chi_Minh (UTC+7).
     # Using :17 avoids the high-load start-of-hour window.
     - cron: '17 20 * * *'  # 03:17 ICT — ongoing
     - cron: '17 21 * * *'  # 04:17 ICT — retry-only
     - cron: '17 0 * * *'   # 07:17 ICT — retry-only
+    - cron: '2 1 * * *'    # 08:02 ICT — retry-only
     - cron: '17 4 * * *'   # 11:17 ICT — completed
     - cron: '17 5 * * *'   # 12:17 ICT — retry-only
     - cron: '17 8 * * *'   # 15:17 ICT — retry-only
@@ -62,6 +63,7 @@ jobs:
               '17 20 * * *') MODE="auto" ;;
               '17 21 * * *') MODE="retry-only" ;;
               '17 0 * * *')  MODE="retry-only" ;;
+              '2 1 * * *')   MODE="retry-only" ;;
               '17 4 * * *')  MODE="completed" ;;
               '17 5 * * *')  MODE="retry-only" ;;
               '17 8 * * *')  MODE="retry-only" ;;
