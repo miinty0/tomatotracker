@@ -585,13 +585,32 @@ function utf8ToB64(str) {
   return btoa(binary);
 }
 async function getFile(filename) {
+  const repoPath = `/repos/${CFG.repo}`;
+  let file;
   try {
-    const data = await ghApi(`/repos/${CFG.repo}/contents/${filename}?ref=data`);
-    const content = b64ToUtf8(data.content);
-    return { data: JSON.parse(content), sha: data.sha };
+    file = await ghApi(`${repoPath}/contents/${filename}?ref=data`, {
+      headers: { Accept: 'application/vnd.github.object+json' }
+    });
   } catch(e) {
     if (e.message.includes('404') || e.message.includes('Not Found')) return { data: [], sha: null };
-    throw e;
+    throw new Error(`${filename}: ${e.message}`);
+  }
+
+  try {
+    if (!file.sha) throw new Error('GitHub did not return a file SHA');
+
+    // For large files, the Contents API returns the SHA without inline Base64.
+    // Read that exact blob so the data and the SHA used when saving match.
+    const data = file.encoding === 'none'
+      ? await ghApi(`${repoPath}/git/blobs/${file.sha}`, {
+          headers: { Accept: 'application/vnd.github.raw+json' }
+        })
+      : JSON.parse(b64ToUtf8(file.content));
+
+    if (!Array.isArray(data)) throw new Error('Expected a JSON array');
+    return { data, sha: file.sha };
+  } catch(e) {
+    throw new Error(`${filename}: ${e.message}`);
   }
 }
 async function putFile(filename, content, sha) {
