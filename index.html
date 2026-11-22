@@ -584,11 +584,12 @@ function utf8ToB64(str) {
   bytes.forEach(b => binary += String.fromCharCode(b));
   return btoa(binary);
 }
-async function getFile(filename) {
+async function getFile(filename, { cache = 'default' } = {}) {
   const repoPath = `/repos/${CFG.repo}`;
   let file;
   try {
     file = await ghApi(`${repoPath}/contents/${filename}?ref=data`, {
+      cache,
       headers: { Accept: 'application/vnd.github.object+json' }
     });
   } catch(e) {
@@ -619,20 +620,23 @@ async function putFile(filename, content, sha) {
   return ghApi(`/repos/${CFG.repo}/contents/${filename}?ref=data`, { method: 'PUT', body: JSON.stringify(body) });
 }
 //LOAD DATA 
-async function loadData() {
+async function loadData({ preserveEdits = false } = {}) {
   if (!CFG.repo || !CFG.token) { switchTab('settings'); toast('Please configure GitHub first.', 'error'); return; }
   document.getElementById('refresh-icon').className = 'spinner';
   try {
+    const options = { cache: preserveEdits ? 'no-store' : 'default' };
     const [w, t, r] = await Promise.all([
-      getFile('waiting_list.json'),
-      getFile('uploading_list.json'),
-      getFile('retry_list.json')
+      getFile('waiting_list.json', options),
+      getFile('uploading_list.json', options),
+      getFile('retry_list.json', options)
     ]);
     waitingList = w.data;
     uploadingList = t.data;
     updateRetryButton(r.data);
-    pendingUpdates.clear();
-    pendingWaitingUpdates.clear();
+    if (!preserveEdits) {
+      pendingUpdates.clear();
+      pendingWaitingUpdates.clear();
+    }
     updateSaveBar();
     renderAll();
     const dataIssues = getUploadingDataIssues(uploadingList);
@@ -781,6 +785,7 @@ async function saveUploading(patchFn) {
 }
 //RETRY + SCRAPER ACTION STATUS
 let scraperDispatchLockUntil = 0;
+let manualScraperRun = null;
 
 function normalizeRetryIds(data) {
   if (!Array.isArray(data)) return [];
@@ -820,9 +825,10 @@ async function checkRetryList() {
   }
 }
 
-async function getActiveScraperRuns() {
+async function getScraperRuns() {
   const data = await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/runs?per_page=100&_=${Date.now()}`, { cache: 'no-store' });
-  return (data.workflow_runs || []).filter(run => run.status !== 'completed');
+  if (!Array.isArray(data.workflow_runs)) throw new Error('GitHub did not return workflow runs');
+  return data.workflow_runs;
 }
 
 // Explicitly replace the favicon on both transitions. Removing <link rel="icon">
@@ -850,7 +856,8 @@ function updateScraperTabFavicon(running) {
 function updateScraperActionUI(activeRuns = [], error = null) {
   const btn = document.getElementById('scrape-action-status');
   const select = document.getElementById('scrape-mode-select');
-  updateScraperTabFavicon(!error && (activeRuns.length > 0 || Date.now() < scraperDispatchLockUntil));
+  const localDispatchPending = manualScraperRun?.repo === CFG.repo || Date.now() < scraperDispatchLockUntil;
+  updateScraperTabFavicon(localDispatchPending || (!error && activeRuns.length > 0));
   if (!btn || !select) return;
 
   if (error) {
@@ -860,7 +867,6 @@ function updateScraperActionUI(activeRuns = [], error = null) {
     return;
   }
 
-  const localDispatchPending = Date.now() < scraperDispatchLockUntil;
   if (activeRuns.length) {
     btn.textContent = activeRuns.length > 1 ? `⏳ Action ${activeRuns.length}` : '⏳ Action running';
     btn.title = 'scrape.yml đang chạy/đang chờ — manual trigger bị khóa';
@@ -886,11 +892,19 @@ async function checkScraperActionStatus(showPopup = false) {
   const btn = document.getElementById('scrape-action-status');
   if (btn) btn.textContent = '… Action';
   try {
-    const activeRuns = await getActiveScraperRuns();
+    const runs = await getScraperRuns();
+    const activeRuns = runs.filter(run => run.status !== 'completed');
+    const manualRunFinished = manualScraperRun?.repo === CFG.repo &&
+      runs.some(run => run.id === manualScraperRun.id && run.status === 'completed');
+    if (manualRunFinished) {
+      manualScraperRun = null;
+      scraperDispatchLockUntil = 0;
+    }
     updateScraperActionUI(activeRuns);
+    if (manualRunFinished) void loadData({ preserveEdits: true });
 
     if (showPopup) {
-      if (!activeRuns.length && Date.now() >= scraperDispatchLockUntil) {
+      if (!activeRuns.length && manualScraperRun?.repo !== CFG.repo && Date.now() >= scraperDispatchLockUntil) {
         toast('✓ scrape.yml hiện đang idle.', 'success');
       } else if (activeRuns.length) {
         const details = activeRuns.slice(0, 20).map(run => {
@@ -931,7 +945,7 @@ async function triggerScraper(mode) {
 
   select.value = '';
 
-  if (Date.now() < scraperDispatchLockUntil) {
+  if (manualScraperRun?.repo === CFG.repo || Date.now() < scraperDispatchLockUntil) {
     updateScraperActionUI([]);
     toast('⏳ Một manual dispatch vừa được gửi. Chưa trigger thêm để tránh race condition.', 'error', 12000);
     return;
@@ -944,28 +958,38 @@ async function triggerScraper(mode) {
     toast('❌ Không xác minh được trạng thái GitHub Action nên không trigger scraper.', 'error', 20000);
     return;
   }
+  if (manualScraperRun?.repo === CFG.repo || Date.now() < scraperDispatchLockUntil) return;
   if (activeRuns.length) {
     toast(`⏳ scrape.yml đang có ${activeRuns.length} run chạy/đang chờ. Không trigger thêm để tránh race condition.`, 'error', 20000);
     return;
   }
 
+  const repo = CFG.repo;
+  scraperDispatchLockUntil = Date.now() + 15000;
   select.disabled = true;
   placeholder.textContent = '⏳ Triggering…';
   try {
-    await ghApi(`/repos/${CFG.repo}/actions/workflows/scrape.yml/dispatches`, {
-      method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { mode } })
+    const dispatch = await ghApi(`/repos/${repo}/actions/workflows/scrape.yml/dispatches`, {
+      method: 'POST',
+      headers: { 'X-GitHub-Api-Version': '2026-03-10' },
+      body: JSON.stringify({ ref: 'main', inputs: { mode } })
     });
-    scraperDispatchLockUntil = Date.now() + 15000;
+    if (!Number.isSafeInteger(dispatch.workflow_run_id)) {
+      toast('GitHub nhận yêu cầu chạy scraper nhưng chưa trả về run ID để theo dõi.', 'error');
+      void pollScraperActionStatus();
+      return;
+    }
+    manualScraperRun = { repo, id: dispatch.workflow_run_id };
     updateScraperActionUI([]);
-    placeholder.textContent = '▶ Scrape';
     toast(`Scraper [${mode}] triggered thành công!`, 'success');
-    setTimeout(() => checkScraperActionStatus(false), 3000);
-    setTimeout(() => checkScraperActionStatus(false), 10000);
+    setTimeout(pollScraperActionStatus, 3000);
+    setTimeout(pollScraperActionStatus, 10000);
   } catch(e) {
     scraperDispatchLockUntil = 0;
     toast('Failed to trigger: ' + e.message, 'error');
-    placeholder.textContent = '▶ Scrape';
     await checkScraperActionStatus(false);
+  } finally {
+    placeholder.textContent = '▶ Scrape';
   }
 }
 //TABS 
@@ -2086,6 +2110,7 @@ window.addEventListener('beforeunload', e => {
   }
 });
 //INIT 
+let scraperStatusPollInFlight = false;
 loadConfig();
 if (CFG.repo && CFG.token) {
   switchTab('waiting');
@@ -2097,7 +2122,6 @@ if (CFG.repo && CFG.token) {
 }
 // Poll while the page is open, and refresh immediately when returning to it.
 // Ignore stale responses so older API requests cannot restore the wrong favicon.
-let scraperStatusPollInFlight = false;
 async function pollScraperActionStatus() {
   if (!CFG.repo || !CFG.token || scraperStatusPollInFlight) return;
   scraperStatusPollInFlight = true;
