@@ -2,18 +2,17 @@ name: Daily Scraper
 
 on:
   schedule:
-    # GitHub schedules are UTC. These are 03:17, 04:17, 07:17, 08:02,
-    # 11:17, 12:17, 15:17, 19:17 and 20:17 in Asia/Ho_Chi_Minh (UTC+7).
-    # Using :17 avoids the high-load start-of-hour window.
-    - cron: '17 20 * * *'  # 03:17 ICT — ongoing
-    - cron: '17 21 * * *'  # 04:17 ICT — retry-only
-    - cron: '17 0 * * *'   # 07:17 ICT — retry-only
-    - cron: '2 1 * * *'    # 08:02 ICT — retry-only
-    - cron: '17 4 * * *'   # 11:17 ICT — completed
-    - cron: '17 5 * * *'   # 12:17 ICT — retry-only
-    - cron: '17 8 * * *'   # 15:17 ICT — retry-only
-    - cron: '17 12 * * *'  # 19:17 ICT — paused
-    - cron: '17 13 * * *'  # 20:17 ICT — retry-only
+    # Cron uses UTC. Comments show Asia/Ho_Chi_Minh time (UTC+7).
+    # The 23:17 auto run starts on the evening before its morning retry runs.
+    - cron: '17 16 * * *'  # 23:17 ICT — ongoing
+    - cron: '17 17 * * *'  # 00:17 ICT — retry-only
+    - cron: '17 20 * * *'  # 03:17 ICT — retry-only
+    - cron: '2 21 * * *'   # 04:02 ICT — retry-only
+    - cron: '17 0 * * *'   # 07:17 ICT — completed
+    - cron: '17 1 * * *'   # 08:17 ICT — retry-only
+    - cron: '17 4 * * *'   # 11:17 ICT — retry-only
+    - cron: '17 8 * * *'   # 15:17 ICT — paused
+    - cron: '17 9 * * *'   # 16:17 ICT — retry-only
   workflow_dispatch:
     inputs:
       mode:
@@ -60,15 +59,15 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "schedule" ]]; then
             case "${{ github.event.schedule }}" in
-              '17 20 * * *') MODE="auto" ;;
-              '17 21 * * *') MODE="retry-only" ;;
-              '17 0 * * *')  MODE="retry-only" ;;
-              '2 1 * * *')   MODE="retry-only" ;;
-              '17 4 * * *')  MODE="completed" ;;
-              '17 5 * * *')  MODE="retry-only" ;;
-              '17 8 * * *')  MODE="retry-only" ;;
-              '17 12 * * *') MODE="paused" ;;
-              '17 13 * * *') MODE="retry-only" ;;
+              '17 16 * * *')  MODE="auto" ;;
+              '17 17 * * *')  MODE="retry-only" ;;
+              '17 20 * * *')  MODE="retry-only" ;;
+              '2 21 * * *')   MODE="retry-only" ;;
+              '17 0 * * *')   MODE="completed" ;;
+              '17 1 * * *')   MODE="retry-only" ;;
+              '17 4 * * *')   MODE="retry-only" ;;
+              '17 8 * * *')   MODE="paused" ;;
+              '17 9 * * *')   MODE="retry-only" ;;
               *)
                 echo "::error::Unknown scheduled cron: ${{ github.event.schedule }}"
                 exit 1
