@@ -1072,7 +1072,7 @@ function waitingStaleReady(lastUpdated, now = new Date()) {
   const published = new Date(y, m, d);
   if (published.getFullYear() !== y || published.getMonth() !== m || published.getDate() !== d) return false;
   const lastDay = new Date(y, m + 4, 0).getDate();
-  const deadline = new Date(y, m + 3, Math.min(d, lastDay));
+  const deadline = d > lastDay ? new Date(y, m + 4, 1) : new Date(y, m + 3, d);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return today >= deadline;
 }
