@@ -1063,6 +1063,19 @@ function daysUntilDeadline(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0);
   return Math.ceil((target.getTime() - today.getTime()) / 86400000);
 }
+// Chapter-only waiting targets may also mature after three calendar months.
+function waitingStaleReady(lastUpdated, now = new Date()) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})(?:$|[ T])/.exec(String(lastUpdated || ''));
+  if (!match) return false;
+  const [, ys, ms, ds] = match;
+  const y = Number(ys), m = Number(ms) - 1, d = Number(ds);
+  const published = new Date(y, m, d);
+  if (published.getFullYear() !== y || published.getMonth() !== m || published.getDate() !== d) return false;
+  const lastDay = new Date(y, m + 4, 0).getDate();
+  const deadline = new Date(y, m + 3, Math.min(d, lastDay));
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return today >= deadline;
+}
 function fmtDeadline(dateStr) {
   if (!dateStr) return '<span class="deadline-none">—</span>';
   const days = daysUntilDeadline(dateStr);
@@ -1677,7 +1690,8 @@ function renderWaiting() {
     const hasCh = desCh > 0, hasDate = dDays !== null;
     const chOk = !hasCh || (book.current_chapters||0) >= desCh;
     const dateOk = !hasDate || dDays <= 0;
-    const targetReady = (hasCh || hasDate) && chOk && dateOk;
+    const staleReady = hasCh && !String(book.desired_date || '').trim() && !chOk && waitingStaleReady(book.last_updated);
+    const targetReady = ((hasCh || hasDate) && chOk && dateOk) || staleReady;
     if (targetReady) anyReady = true;
     const readyTag = targetReady
       ? '<span class="tag tag-green">✓ READY</span>'
